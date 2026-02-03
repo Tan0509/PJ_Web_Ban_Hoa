@@ -1,0 +1,36 @@
+{
+  "name": "pj-website-ban-hoa",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "create-admin": "node scripts/create-admin.js",
+    "migrate-users": "node scripts/migrate-users.js",
+    "migrate-users:dry-run": "MIGRATION_DRY_RUN=true node scripts/migrate-users.js",
+    "migrate-users:rollback": "node scripts/migrate-users-rollback.js",
+    "migrate-images": "node scripts/migrate-images-to-cloudinary.js"
+  },
+  "dependencies": {
+    "@hello-pangea/dnd": "^18.0.1",
+    "bcryptjs": "^3.0.3",
+    "cloudinary": "^2.9.0",
+    "mongoose": "^8.0.0",
+    "next": "^16.1.6",
+    "next-auth": "^4.24.13",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "recharts": "^3.6.0"
+  },
+  "devDependencies": {
+    "@netlify/plugin-nextjs": "^5.15.7",
+    "@types/node": "25.0.3",
+    "@types/react": "19.2.7",
+    "autoprefixer": "^10.4.23",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.19",
+    "typescript": "5.9.3"
+  }
+}

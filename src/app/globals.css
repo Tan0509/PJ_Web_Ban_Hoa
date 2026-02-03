@@ -1,0 +1,133 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #f7f7f7;
+  color: #111;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.container-section {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+/* Customer dark mode toggle – vòng tròn icon (cùng cấu trúc như Yêu thích, Giỏ hàng) */
+.customer-theme-circle {
+  color: #374151;
+}
+.customer-theme-circle:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+/* Dark mode: customer layout (data-layout="customer") */
+html.dark body {
+  background: #111827;
+  color: #e5e7eb;
+}
+html.dark [data-layout="customer"] {
+  background: #111827;
+  color: #e5e7eb;
+}
+html.dark [data-layout="customer"] .bg-white {
+  background-color: #1f2937;
+}
+html.dark [data-layout="customer"] .bg-gray-50,
+html.dark [data-layout="customer"] .bg-gray-50\/50,
+html.dark [data-layout="customer"] .bg-gray-100 {
+  background-color: #374151;
+}
+html.dark [data-layout="customer"] .border-gray-200,
+html.dark [data-layout="customer"] .border-gray-300 {
+  border-color: #4b5563;
+}
+html.dark [data-layout="customer"] .text-gray-500 {
+  color: #9ca3af;
+}
+html.dark [data-layout="customer"] .text-gray-600 {
+  color: #d1d5db;
+}
+html.dark [data-layout="customer"] .text-gray-700 {
+  color: #e5e7eb;
+}
+html.dark [data-layout="customer"] .text-gray-800 {
+  color: #f3f4f6;
+}
+html.dark [data-layout="customer"] .text-gray-900 {
+  color: #f9fafb;
+}
+html.dark [data-layout="customer"] input,
+html.dark [data-layout="customer"] select,
+html.dark [data-layout="customer"] textarea {
+  background-color: #374151;
+  border-color: #4b5563;
+  color: #f9fafb;
+}
+html.dark [data-layout="customer"] input::placeholder,
+html.dark [data-layout="customer"] textarea::placeholder {
+  color: #9ca3af;
+}
+html.dark [data-layout="customer"] input:focus,
+html.dark [data-layout="customer"] select:focus,
+html.dark [data-layout="customer"] textarea:focus {
+  border-color: #6b7280;
+  outline: none;
+}
+html.dark [data-layout="customer"] .hover\:bg-gray-50:hover,
+html.dark [data-layout="customer"] .hover\:bg-gray-100:hover {
+  background-color: #374151;
+}
+html.dark [data-layout="customer"] .hover\:text-\[\#0f5c5c\]:hover {
+  color: #5eead4;
+}
+html.dark [data-layout="customer"] .customer-theme-circle {
+  border-color: #4b5563;
+  background: #374151;
+  color: #e5e7eb;
+}
+html.dark [data-layout="customer"] .customer-theme-circle:hover {
+  background: #4b5563;
+}
+/* Teal brand trong dark (logo, nút, link) */
+html.dark [data-layout="customer"] a.text-\[\#0f5c5c\],
+html.dark [data-layout="customer"] .text-\[\#0f5c5c\] {
+  color: #5eead4;
+}
+html.dark [data-layout="customer"] .bg-\[\#0f5c5c\] {
+  background-color: #0f5c5c;
+}
+html.dark [data-layout="customer"] .bg-\[\#0f5c5c\]:hover {
+  background-color: #0d4d4d;
+}
+html.dark [data-layout="customer"] .border-dashed {
+  border-color: #4b5563;
+}
+html.dark [data-layout="customer"] .bg-amber-50 {
+  background-color: #78350f;
+}
+html.dark [data-layout="customer"] .border-amber-200 {
+  border-color: #b45309;
+}
+html.dark [data-layout="customer"] .text-amber-800 {
+  color: #fcd34d;
+}
+html.dark [data-layout="customer"] .shadow-sm {
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+}

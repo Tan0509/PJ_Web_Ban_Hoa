@@ -1,0 +1,549 @@
+.admin-shell {
+  display: flex;
+  min-height: 100vh;
+  background: #f5f5f5;
+  position: relative;
+}
+.admin-sidebar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  height: 100vh;
+  background: #0f5c5c;
+  color: white;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: width 0.3s ease;
+  overflow-y: auto;
+  overflow-x: hidden;
+  width: 220px;
+  z-index: 100;
+}
+.admin-sidebar-collapsed {
+  width: 56px;
+  padding: 16px 8px;
+}
+.admin-main {
+  margin-left: 220px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  transition: margin-left 0.3s ease;
+}
+.admin-shell-collapsed .admin-main {
+  margin-left: 56px;
+}
+.admin-logo-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 28px;
+}
+.admin-sidebar-collapsed .admin-logo-wrapper {
+  justify-content: center;
+}
+.admin-sidebar-toggle {
+  width: 32px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+.admin-sidebar-toggle:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
+}
+.admin-sidebar-toggle:active {
+  background: rgba(255, 255, 255, 0.15);
+  transform: scale(0.95);
+}
+.admin-sidebar-toggle svg {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.2s ease;
+}
+.admin-sidebar-collapsed .admin-sidebar-toggle {
+  width: 40px;
+  height: 40px;
+}
+.admin-sidebar-collapsed .admin-sidebar-toggle svg {
+  width: 18px;
+  height: 18px;
+}
+.admin-logo {
+  font-weight: 700;
+  font-size: 18px;
+}
+.admin-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.admin-nav-item {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.08);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: white;
+  transition: background 0.2s ease;
+}
+.admin-nav-item:hover {
+  background: rgba(255,255,255,0.15);
+}
+.admin-nav-icon {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+}
+.admin-nav-item span {
+  flex: 1;
+}
+
+.admin-nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.admin-nav-summary {
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+}
+.admin-nav-summary::-webkit-details-marker {
+  display: none;
+}
+.admin-nav-children {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-left: 10px;
+}
+.admin-nav-subitem {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.06);
+}
+.admin-nav-subitem:hover {
+  background: rgba(255,255,255,0.12);
+}
+.admin-main {
+  display: flex;
+  flex-direction: column;
+}
+.admin-topbar {
+  height: 56px;
+  border-bottom: 1px solid #e5e5e5;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+}
+.admin-top-title {
+  font-weight: 600;
+}
+.admin-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-theme-toggle {
+  height: 40px;
+  width: 40px;
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #374151;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+.admin-theme-toggle:hover {
+  background: #f9fafb;
+}
+.admin-theme-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.admin-bell {
+  position: relative;
+}
+.admin-bell-btn {
+  position: relative;
+  height: 40px;
+  width: 40px;
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #374151;
+}
+.admin-bell-btn:hover {
+  background: #f9fafb;
+}
+.admin-bell-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #dc2626;
+  color: #fff;
+  font-size: 11px;
+  line-height: 18px;
+  text-align: center;
+  font-weight: 700;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+}
+
+@keyframes adminBellRing {
+  0% { transform: rotate(0deg); }
+  10% { transform: rotate(12deg); }
+  20% { transform: rotate(-12deg); }
+  30% { transform: rotate(10deg); }
+  40% { transform: rotate(-10deg); }
+  50% { transform: rotate(6deg); }
+  60% { transform: rotate(-6deg); }
+  70% { transform: rotate(3deg); }
+  80% { transform: rotate(-3deg); }
+  90% { transform: rotate(1deg); }
+  100% { transform: rotate(0deg); }
+}
+.admin-bell-btn.is-ringing svg {
+  transform-origin: top center;
+  animation: adminBellRing 1.2s ease-in-out infinite;
+}
+
+.admin-bell-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  width: 360px;
+  max-width: calc(100vw - 32px);
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 18px 40px rgba(0,0,0,0.18);
+  overflow: hidden;
+  z-index: 999;
+}
+.admin-bell-panel-head {
+  padding: 12px 14px;
+  border-bottom: 1px solid #f1f5f9;
+}
+.admin-bell-panel-title {
+  font-weight: 700;
+  color: #111827;
+}
+.admin-bell-panel-sub {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+.admin-bell-panel-body {
+  max-height: 380px;
+  overflow: auto;
+}
+.admin-bell-empty {
+  padding: 16px;
+  font-size: 13px;
+  color: #6b7280;
+  text-align: center;
+}
+.admin-bell-item {
+  width: 100%;
+  text-align: left;
+  padding: 12px 14px;
+  border: 0;
+  background: transparent;
+  border-bottom: 1px solid #f1f5f9;
+  cursor: pointer;
+}
+.admin-bell-item:hover {
+  background: #f9fafb;
+}
+.admin-bell-item-title {
+  font-weight: 700;
+  color: #111827;
+  font-size: 13px;
+}
+.admin-bell-item-body {
+  margin-top: 3px;
+  font-size: 12px;
+  color: #6b7280;
+}
+.admin-bell-item-time {
+  margin-top: 6px;
+  font-size: 11px;
+  color: #9ca3af;
+}
+.admin-bell-panel-foot {
+  padding: 10px 14px;
+  border-top: 1px solid #f1f5f9;
+  background: #fff;
+}
+.admin-bell-link {
+  border: 0;
+  background: transparent;
+  color: #0f5c5c;
+  font-weight: 700;
+  cursor: pointer;
+}
+.admin-bell-link:hover {
+  text-decoration: underline;
+}
+.admin-content {
+  padding: 16px;
+}
+
+/* Dark mode (admin only when html.dark) */
+html.dark .admin-shell {
+  background: #111827;
+}
+html.dark .admin-topbar {
+  border-bottom-color: #374151;
+  background: #1f2937;
+}
+html.dark .admin-top-title {
+  color: #f9fafb;
+}
+html.dark .admin-theme-toggle {
+  border-color: #4b5563;
+  background: #374151;
+  color: #e5e7eb;
+}
+html.dark .admin-theme-toggle:hover {
+  background: #4b5563;
+}
+html.dark .admin-bell-btn {
+  border-color: #4b5563;
+  background: #374151;
+  color: #e5e7eb;
+}
+html.dark .admin-bell-btn:hover {
+  background: #4b5563;
+}
+html.dark .admin-bell-panel {
+  background: #1f2937;
+  border-color: #4b5563;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.5);
+}
+html.dark .admin-bell-panel-head {
+  border-bottom-color: #374151;
+}
+html.dark .admin-bell-panel-title {
+  color: #f9fafb;
+}
+html.dark .admin-bell-panel-sub {
+  color: #9ca3af;
+}
+html.dark .admin-bell-empty {
+  color: #9ca3af;
+}
+html.dark .admin-bell-item {
+  border-bottom-color: #374151;
+}
+html.dark .admin-bell-item:hover {
+  background: #374151;
+}
+html.dark .admin-bell-item-title {
+  color: #f9fafb;
+}
+html.dark .admin-bell-item-body,
+html.dark .admin-bell-item-time {
+  color: #9ca3af;
+}
+html.dark .admin-bell-panel-foot {
+  border-top-color: #374151;
+  background: #1f2937;
+}
+html.dark .admin-bell-link {
+  color: #6ee7b7;
+}
+html.dark .admin-bell-link:hover {
+  color: #34d399;
+}
+html.dark .admin-content {
+  background: #111827;
+  color: #e5e7eb;
+}
+
+/* Dark mode: nội dung trong .admin-content (cards, form, chart, bảng, modal) */
+html.dark .admin-content .bg-white {
+  background-color: #1f2937;
+}
+html.dark .admin-content .bg-gray-50,
+html.dark .admin-content .bg-gray-50\/50,
+html.dark .admin-content .bg-gray-50\/80 {
+  background-color: #374151;
+}
+html.dark .admin-content .bg-gray-100 {
+  background-color: #4b5563;
+}
+html.dark .admin-content .border-gray-200,
+html.dark .admin-content .border-gray-300 {
+  border-color: #4b5563;
+}
+html.dark .admin-content .text-gray-500 {
+  color: #9ca3af;
+}
+html.dark .admin-content .text-gray-600 {
+  color: #d1d5db;
+}
+html.dark .admin-content .text-gray-700 {
+  color: #e5e7eb;
+}
+html.dark .admin-content .text-gray-800 {
+  color: #f3f4f6;
+}
+html.dark .admin-content .text-gray-900 {
+  color: #f9fafb;
+}
+html.dark .admin-content .text-red-600 {
+  color: #f87171;
+}
+html.dark .admin-content input,
+html.dark .admin-content select,
+html.dark .admin-content textarea {
+  background-color: #374151;
+  border-color: #4b5563;
+  color: #f9fafb;
+}
+html.dark .admin-content input::placeholder,
+html.dark .admin-content textarea::placeholder {
+  color: #9ca3af;
+}
+html.dark .admin-content input:focus,
+html.dark .admin-content select:focus,
+html.dark .admin-content textarea:focus {
+  border-color: #6b7280;
+  outline: none;
+}
+html.dark .admin-content .hover\:bg-gray-50:hover,
+html.dark .admin-content .hover\:bg-gray-100:hover {
+  background-color: #374151;
+}
+html.dark .admin-content .hover\:border-emerald-500:hover {
+  border-color: #10b981;
+}
+html.dark .admin-content .bg-emerald-50,
+html.dark .admin-content .bg-emerald-50\/50 {
+  background-color: #064e3b;
+}
+html.dark .admin-content .border-emerald-100 {
+  border-color: #065f46;
+}
+html.dark .admin-content .text-emerald-700 {
+  color: #6ee7b7;
+}
+html.dark .admin-content .hover\:bg-emerald-50:hover {
+  background-color: #065f46;
+}
+html.dark .admin-content .hover\:text-gray-700:hover {
+  color: #e5e7eb;
+}
+html.dark .admin-content .border-dashed {
+  border-color: #4b5563;
+}
+/* Modal / overlay nằm trong admin (fixed, full screen) */
+html.dark .admin-content .fixed .bg-white {
+  background-color: #1f2937;
+}
+html.dark .admin-content .bg-gray-50\/50 {
+  background-color: rgba(55, 65, 81, 0.5);
+}
+html.dark .admin-content .rounded-lg.border {
+  border-color: #4b5563;
+}
+/* Dropdown / option trong select */
+html.dark .admin-content select option {
+  background: #1f2937;
+  color: #f9fafb;
+}
+/* Rose (nút Xóa) – chữ sáng để dễ đọc trên nền tối */
+html.dark .admin-content .bg-rose-50,
+html.dark .admin-content .hover\:bg-rose-50:hover {
+  background-color: #4c1d19;
+}
+html.dark .admin-content .border-rose-200 {
+  border-color: #f87171;
+}
+html.dark .admin-content .text-rose-700 {
+  color: #fecaca;
+}
+html.dark .admin-content .text-rose-600 {
+  color: #fca5a5;
+}
+/* Amber (nút Ẩn/Hiện) – chữ và viền sáng */
+html.dark .admin-content .text-amber-700 {
+  color: #fcd34d;
+}
+html.dark .admin-content .border-amber-200 {
+  border-color: #f59e0b;
+}
+html.dark .admin-content .hover\:bg-amber-50:hover {
+  background-color: #78350f;
+}
+/* Nút Sửa (border-gray-200) – dùng màu kế thừa từ .admin-content, đảm bảo hover rõ */
+html.dark .admin-content button.rounded-md.border.border-gray-200 {
+  color: #f3f4f6;
+}
+html.dark .admin-content button.rounded-md.border.border-gray-200:hover {
+  background-color: #374151;
+}
+/* Modal render qua portal ra body: chỉ áp dụng khi đang ở admin (body có .admin-shell là tổ tiên không có, nhưng html.dark chỉ bật trong admin - nên modal ra body vẫn nằm trong html.dark) */
+html.dark body > div[class*="fixed"][class*="inset"] > div.bg-white {
+  background-color: #1f2937;
+  border-color: #4b5563;
+}
+html.dark body > div[class*="fixed"] div.bg-white {
+  background-color: #1f2937;
+}
+html.dark body > div[class*="fixed"] .border-gray-200 {
+  border-color: #4b5563;
+}
+html.dark body > div[class*="fixed"] .bg-gray-50 {
+  background-color: #374151;
+}
+html.dark body > div[class*="fixed"] .text-gray-900,
+html.dark body > div[class*="fixed"] .text-gray-800,
+html.dark body > div[class*="fixed"] .text-gray-700 {
+  color: #e5e7eb;
+}
+html.dark body > div[class*="fixed"] .text-gray-500,
+html.dark body > div[class*="fixed"] .text-gray-600 {
+  color: #9ca3af;
+}
+html.dark body > div[class*="fixed"] input,
+html.dark body > div[class*="fixed"] select,
+html.dark body > div[class*="fixed"] textarea {
+  background-color: #374151;
+  border-color: #4b5563;
+  color: #f9fafb;
+}

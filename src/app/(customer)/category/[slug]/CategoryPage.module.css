@@ -1,0 +1,13 @@
+.categoryPage {
+  padding-top: 24px;
+}
+
+.categoryPage :global(.text-base.font-semibold.text-gray-900) {
+  font-size: 1rem;
+}
+
+.categoryPage :global(.text-lg.font-bold.text-gray-900) {
+  font-size: 1rem;
+  line-height: 1.3rem;
+}
+
