@@ -5,8 +5,9 @@ import { connectMongo } from '@/lib/mongoose';
 import Order from '@/models/Order';
 
 // Customer order detail (for Banking instruction page)
-export async function GET(_: Request, ctx: { params: { id: string } }) {
+export async function GET(_: Request, ctx: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await ctx.params;
     const session = await getServerSession(authOptions);
     const userId = (session?.user as any)?.id as string | undefined;
     const role = (session?.user as any)?.role as string | undefined;
@@ -18,7 +19,7 @@ export async function GET(_: Request, ctx: { params: { id: string } }) {
     }
 
     await connectMongo();
-    let order: any = await Order.findById(ctx.params.id).lean();
+    let order: any = await Order.findById(id).lean();
     if (!order) return NextResponse.json({ message: 'Not found' }, { status: 404 });
     if (String(order.customerId) !== String(userId)) {
       return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
@@ -36,7 +37,7 @@ export async function GET(_: Request, ctx: { params: { id: string } }) {
         { _id: order._id, $or: [{ expiresAt: { $exists: false } }, { expiresAt: null }] },
         { $set: { expiresAt } }
       );
-      order = await Order.findById(ctx.params.id).lean();
+      order = await Order.findById(id).lean();
     }
 
     // If order has expiresAt and is overdue, auto-expire it here as well
@@ -58,7 +59,7 @@ export async function GET(_: Request, ctx: { params: { id: string } }) {
           },
         }
       );
-      order = await Order.findById(ctx.params.id).lean();
+      order = await Order.findById(id).lean();
     }
 
     return NextResponse.json({ success: true, data: order });
@@ -68,8 +69,9 @@ export async function GET(_: Request, ctx: { params: { id: string } }) {
 }
 
 // Customer cancels Banking payment (no more countdown, order -> CANCELLED)
-export async function POST(req: Request, ctx: { params: { id: string } }) {
+export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await ctx.params;
     const session = await getServerSession(authOptions);
     const userId = (session?.user as any)?.id as string | undefined;
     const role = (session?.user as any)?.role as string | undefined;
@@ -88,7 +90,7 @@ export async function POST(req: Request, ctx: { params: { id: string } }) {
     }
 
     await connectMongo();
-    const order: any = await Order.findById(ctx.params.id);
+    const order: any = await Order.findById(id);
     if (!order) return NextResponse.json({ message: 'Not found' }, { status: 404 });
     if (String(order.customerId) !== String(userId)) {
       return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
