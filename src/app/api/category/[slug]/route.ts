@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getCategoryPageData, type SearchParams } from '@/lib/data/categoryData';
 import { json500 } from '@/lib/helpers/apiResponse';
 
+export const runtime = 'nodejs';
 /**
  * GET /api/category/[slug]?page=1&sort=...&minPrice=... (cache client TTL 30p).
  * Chỉ xem; không dùng cho checkout/thanh toán.

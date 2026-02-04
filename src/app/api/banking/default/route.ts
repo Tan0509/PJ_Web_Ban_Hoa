@@ -3,6 +3,7 @@ import { json500 } from '@/lib/helpers/apiResponse';
 import { connectMongo } from '@/lib/mongoose';
 import BankingAccount from '@/models/BankingAccount';
 
+export const runtime = 'nodejs';
 // Public read: default banking account for customer transfer page
 export async function GET() {
   try {

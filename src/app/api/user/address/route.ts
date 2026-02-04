@@ -5,6 +5,7 @@ import { isValidVietnamesePhone } from '@/lib/helpers/validation';
 import { connectMongo } from '@/lib/mongoose';
 import User from '@/models/User';
 
+export const runtime = 'nodejs';
 // MIGRATION: Customer model → User model (single source of truth)
 
 type AddressPayload = {

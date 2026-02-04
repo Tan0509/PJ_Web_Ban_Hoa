@@ -4,6 +4,7 @@ import { json500 } from '@/lib/helpers/apiResponse';
 import { connectMongo } from '@/lib/mongoose';
 import Order from '@/models/Order';
 
+export const runtime = 'nodejs';
 /**
  * Lightweight check: does the current user have at least one order
  * with PENDING + UNPAID + MoMo/VNPay/Banking (for badge in UserMenu).

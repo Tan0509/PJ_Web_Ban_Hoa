@@ -3,6 +3,7 @@ import { connectMongo } from '@/lib/mongoose';
 import Product from '@/models/Product';
 import { json500 } from '@/lib/helpers/apiResponse';
 
+export const runtime = 'nodejs';
 /**
  * GET /api/product/[slug] – chi tiết sản phẩm + related (cache client TTL 30p).
  * Chỉ xem; không dùng cache cho add-to-cart / thanh toán.

@@ -4,6 +4,7 @@ import Category from '@/models/Category';
 import Product from '@/models/Product';
 import { json500 } from '@/lib/helpers/apiResponse';
 
+export const runtime = 'nodejs';
 /**
  * GET /api/home/category-products?categoryIds=id1,id2&categorySlugs=slug1,slug2
  * Returns products grouped by category for the given category IDs/slugs (load-more for home).

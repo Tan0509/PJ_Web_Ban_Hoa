@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { connectMongo } from '@/lib/mongoose';
 import Product from '@/models/Product';
 
+export const runtime = 'nodejs';
 export async function GET(req: Request) {
   await connectMongo();
   const { searchParams } = new URL(req.url);

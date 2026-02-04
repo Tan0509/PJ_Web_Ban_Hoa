@@ -8,6 +8,7 @@ import AdminNotification from '@/models/AdminNotification';
 import { sendEmailSendGrid } from '@/lib/sendgrid';
 import { renderAdminNewOrderEmail, renderUserOrderCreatedEmail } from '@/lib/emailTemplates';
 
+export const runtime = 'nodejs';
 type PaymentMethod = 'cod' | 'stripe' | 'vnpay' | 'momo';
 
 const PAYMENT_METHOD_MAP: Record<PaymentMethod, string> = {

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { connectMongo } from '@/lib/mongoose';
 import Category from '@/models/Category';
 
+export const runtime = 'nodejs';
 // Cache API response for 5 minutes (categories don't change frequently)
 export const revalidate = 300;
 

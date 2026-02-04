@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import AppSetting from '@/models/AppSetting';
 
+export const runtime = 'nodejs';
 export async function GET() {
   try {
     await dbConnect();

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import AppSetting from '@/models/AppSetting';
 
+export const runtime = 'nodejs';
 // Cache API response for 60 seconds
 export const revalidate = 60;
 

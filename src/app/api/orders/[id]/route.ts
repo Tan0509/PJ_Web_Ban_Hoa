@@ -4,6 +4,7 @@ import { json500 } from '@/lib/helpers/apiResponse';
 import { connectMongo } from '@/lib/mongoose';
 import Order from '@/models/Order';
 
+export const runtime = 'nodejs';
 // Customer order detail (for Banking instruction page)
 export async function GET(_: Request, ctx: { params: Promise<{ id: string }> }) {
   try {

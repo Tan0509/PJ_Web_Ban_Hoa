@@ -3,6 +3,7 @@ import { json500 } from '@/lib/helpers/apiResponse';
 import { connectMongo } from '@/lib/mongoose';
 import AppSetting, { ProductFilterSetting } from '@/models/AppSetting';
 
+export const runtime = 'nodejs';
 const DEFAULT_FILTERS: ProductFilterSetting = {
   types: {
     enabled: true,

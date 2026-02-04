@@ -4,6 +4,7 @@ import { json500 } from '@/lib/helpers/apiResponse';
 import { connectMongo } from '@/lib/mongoose';
 import User from '@/models/User';
 
+export const runtime = 'nodejs';
 // MIGRATION: Customer model → User model (single source of truth)
 
 type UserLean = {
