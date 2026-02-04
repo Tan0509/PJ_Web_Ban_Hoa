@@ -1,10 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { methodNotAllowed } from '@/lib/helpers/pagesApi';
 
 // Admin-only API
 // JSON response only – no redirect
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') return res.status(405).json({ message: 'Method not allowed' });
+  if (req.method !== 'POST') return methodNotAllowed(res);
 
   res.setHeader('Set-Cookie', [
     'role=; Path=/; HttpOnly; Max-Age=0; SameSite=Lax',

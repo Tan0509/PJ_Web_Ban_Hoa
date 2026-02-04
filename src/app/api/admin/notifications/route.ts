@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/pages/api/auth/[...nextauth]';
+import { getSessionForAppRouter } from '@/lib/authHelpers';
+import { json500 } from '@/lib/helpers/apiResponse';
 import { connectMongo } from '@/lib/mongoose';
 import AdminNotification from '@/models/AdminNotification';
 
@@ -18,9 +18,9 @@ function unreadFilter(userId: string) {
 
 export async function GET(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    const userId = (session?.user as any)?.id as string | undefined;
-    const role = (session?.user as any)?.role as string | undefined;
+    const session = await getSessionForAppRouter();
+    const userId = (session?.user as { id?: string } | undefined)?.id;
+    const role = (session?.user as { role?: string } | undefined)?.role;
     if (!userId || !isAdminRole(role)) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
 
     const { searchParams } = new URL(req.url);
@@ -40,16 +40,16 @@ export async function GET(req: Request) {
       success: true,
       data: { items, unreadCount },
     });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: err?.message || 'Server error' }, { status: 500 });
+  } catch (err) {
+    return json500(err);
   }
 }
 
 export async function PATCH(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    const userId = (session?.user as any)?.id as string | undefined;
-    const role = (session?.user as any)?.role as string | undefined;
+    const session = await getSessionForAppRouter();
+    const userId = (session?.user as { id?: string } | undefined)?.id;
+    const role = (session?.user as { role?: string } | undefined)?.role;
     if (!userId || !isAdminRole(role)) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json().catch(() => ({}));
@@ -69,8 +69,8 @@ export async function PATCH(req: Request) {
     }
 
     return NextResponse.json({ message: 'Missing ids or all' }, { status: 400 });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: err?.message || 'Server error' }, { status: 500 });
+  } catch (err) {
+    return json500(err);
   }
 }
 

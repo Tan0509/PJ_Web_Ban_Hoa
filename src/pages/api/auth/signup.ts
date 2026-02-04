@@ -8,13 +8,14 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
 import bcrypt from 'bcryptjs';
+import { methodNotAllowed } from '@/lib/helpers/pagesApi';
 
 // AUTH REFACTOR: This API only creates user, does NOT set cookies
 // NextAuth session is created via signIn('credentials') on frontend
 // MIGRATION: Creates User with role='customer' instead of Customer model
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method not allowed' });
+  if (req.method !== 'POST') return methodNotAllowed(res, 'successError');
   await dbConnect();
   // AUTH AUDIT FIX: lowercase email, enforce status/provider defaults
   // MIGRATION: Customer model → User model

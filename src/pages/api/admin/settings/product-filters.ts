@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '@/lib/mongodb';
 import AppSetting, { ProductFilterSetting } from '@/models/AppSetting';
 import { isAdminFromSession } from '@/lib/authHelpers';
+import { methodNotAllowed } from '@/lib/helpers/pagesApi';
 
 type ErrorResponse = { message: string };
 
@@ -71,6 +72,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     return res.status(200).json({ filters: sanitizeFilters(updated?.productFilters || filters) });
   }
 
-  return res.status(405).json({ message: 'Method not allowed' });
+  return methodNotAllowed(res);
 }
 

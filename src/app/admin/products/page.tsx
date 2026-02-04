@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useToast } from '@/components/ToastProvider';
+import { slugify } from '@/lib/helpers/string';
 
 type ProductItem = {
   _id: string;
@@ -154,15 +155,6 @@ function ImageDrop({ value, onChange, single }: ImageDropProps) {
       ) : null}
     </div>
   );
-}
-
-function slugify(value: string) {
-  return value
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
 }
 
 function formatCurrency(value: number) {

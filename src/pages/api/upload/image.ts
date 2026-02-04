@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { uploadBase64ToCloudinary } from '@/lib/cloudinary';
 import { isAdminFromSession } from '@/lib/authHelpers';
+import { methodNotAllowed } from '@/lib/helpers/pagesApi';
 
 type SuccessResponse = { url: string };
 type ErrorResponse = { error: string };
@@ -18,7 +19,7 @@ export default async function handler(
   res: NextApiResponse<SuccessResponse | ErrorResponse>
 ) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return methodNotAllowed(res, 'error');
   }
 
   // Only admin can upload

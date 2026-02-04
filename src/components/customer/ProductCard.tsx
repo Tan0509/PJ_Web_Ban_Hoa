@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useMemo } from 'react';
+import { formatVnd } from '@/lib/helpers/format';
 import { useStore } from './StoreProvider';
 
 type Product = {
@@ -16,8 +17,7 @@ type Product = {
 };
 
 function formatCurrency(value?: number) {
-  if (typeof value !== 'number') return '';
-  return value.toLocaleString('vi-VN') + ' VNĐ';
+  return typeof value === 'number' && !Number.isNaN(value) ? formatVnd(value) : '';
 }
 
 export default function ProductCard({ product }: { product: Product }) {

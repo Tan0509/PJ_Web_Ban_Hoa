@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '@/lib/mongodb';
 import Order from '@/models/Order';
+import { methodNotAllowed } from '@/lib/helpers/pagesApi';
 
 // LEGACY: Kept to avoid route conflict with App Router
 // Previously: src/pages/api/orders/[id].ts (PUT update order)
@@ -18,6 +19,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!updated) return res.status(404).json({ success: false, error: 'Not found' });
     return res.status(200).json({ success: true, data: updated });
   }
-  return res.status(405).json({ success: false, error: 'Method not allowed' });
+  return methodNotAllowed(res, 'successError');
 }
 

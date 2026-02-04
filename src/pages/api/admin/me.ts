@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
 import { isAdminFromSession, getUserIdFromSession } from '@/lib/authHelpers';
+import { methodNotAllowed } from '@/lib/helpers/pagesApi';
 
 // Admin-only API
 // JSON response only – no redirect
@@ -10,7 +11,7 @@ import { isAdminFromSession, getUserIdFromSession } from '@/lib/authHelpers';
 type ErrorResponse = { message: string };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse<any | ErrorResponse>) {
-  if (req.method !== 'GET') return res.status(405).json({ message: 'Method not allowed' });
+  if (req.method !== 'GET') return methodNotAllowed(res);
   if (!(await isAdminFromSession(req, res))) return res.status(401).json({ message: 'Unauthorized' });
 
   const userId = await getUserIdFromSession(req, res);

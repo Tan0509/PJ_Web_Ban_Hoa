@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useToast } from '@/components/ToastProvider';
+import { isValidVietnamesePhone } from '@/lib/helpers/validation';
 
 // User Admin Detail Page
 // Route: /admin/users/:id
@@ -56,7 +57,7 @@ function formatDate(value?: string) {
 
 function validatePhone(phone?: string) {
   if (!phone) return true; // Optional
-  return /^0\d{9,10}$/.test(phone);
+  return isValidVietnamesePhone(phone);
 }
 
 // Helper: Convert File to Data URL

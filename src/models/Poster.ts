@@ -16,4 +16,6 @@ const PosterSchema = new Schema<IPoster>({
   active: { type: Boolean, default: true },
 }, { collection: 'posters' });
 
+PosterSchema.index({ active: 1, order: 1 }); // Home banner: find active, sort by order
+
 export default mongoose.models.Poster || mongoose.model<IPoster>('Poster', PosterSchema);

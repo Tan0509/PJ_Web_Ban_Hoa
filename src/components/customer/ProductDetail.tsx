@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
+import { formatVnd } from '@/lib/helpers/format';
 import { useStore } from './StoreProvider';
 import ProductCard from './ProductCard';
 
@@ -27,8 +28,7 @@ type Product = {
 };
 
 function formatCurrency(value?: number) {
-  if (typeof value !== 'number') return '';
-  return value.toLocaleString('vi-VN') + ' VNĐ';
+  return typeof value === 'number' && !Number.isNaN(value) ? formatVnd(value) : '';
 }
 
 // UI/UX Redesign: ProductDetail with improved visual hierarchy, spacing, and modern design

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/pages/api/auth/[...nextauth]';
+import { requireSession } from '@/lib/authHelpers';
+import { json500 } from '@/lib/helpers/apiResponse';
 import { connectMongo } from '@/lib/mongoose';
 import User from '@/models/User';
 
@@ -8,10 +8,8 @@ import User from '@/models/User';
 
 export async function PATCH(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email || !(session.user as any)?.id) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireSession();
+    if (!auth) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
     const { name, phone } = body || {};
@@ -21,7 +19,7 @@ export async function PATCH(req: Request) {
 
     await connectMongo();
     // MIGRATION: Customer model → User model
-    const user = await User.findById((session.user as any).id);
+    const user = await User.findById(auth.userId);
     if (!user) return NextResponse.json({ success: false, error: 'User không tồn tại' }, { status: 404 });
 
     user.name = name.trim();
@@ -40,7 +38,7 @@ export async function PATCH(req: Request) {
         avatar: user.avatar,
       },
     });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: err?.message || 'Server error' }, { status: 500 });
+  } catch (err) {
+    return json500(err);
   }
 }

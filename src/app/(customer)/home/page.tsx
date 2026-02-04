@@ -8,9 +8,8 @@ import CustomerBanner from '@/components/customer/CustomerBanner';
 import CategoryCircles from '@/components/customer/CategoryCircles';
 import FeaturedProductsSection from '@/components/customer/FeaturedProductsSection';
 
-// Force dynamic rendering: always fetch fresh data from MongoDB on each request
-// This ensures data is loaded even if static generation failed during build
-export const dynamic = 'force-dynamic';
+// Revalidate every 60s so home is fast for repeat visits; first request still hits DB
+export const revalidate = 60;
 
 export default async function Home() {
   let categories: unknown[] = [];

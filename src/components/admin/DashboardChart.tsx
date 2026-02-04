@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Bar,
   BarChart,
@@ -60,8 +60,6 @@ function generateMockData(): DashboardSeries[] {
   return data;
 }
 
-const mockData = generateMockData();
-
 function getLastNDaysRange(n: number): { from: string; to: string } {
   const today = new Date();
   const from = new Date(today);
@@ -77,6 +75,7 @@ function validateDateRange(from: string, to: string) {
 type MetricColorState = Record<MetricKey, { mode: ColorMode; color: string }>;
 
 export default function DashboardChart() {
+  const [chartData, setChartData] = useState<DashboardSeries[]>([]);
   const [chartType, setChartType] = useState<ChartType>('bar');
   const [selectedMetrics, setSelectedMetrics] = useState<MetricKey[]>([
     'revenue',
@@ -92,13 +91,17 @@ export default function DashboardChart() {
   const [fromDate, setFromDate] = useState(defaultRange.from);
   const [toDate, setToDate] = useState(defaultRange.to);
 
+  useEffect(() => {
+    setChartData(generateMockData());
+  }, []);
+
   const isDateRangeValid = validateDateRange(fromDate, toDate);
 
   const filteredData = useMemo(() => {
     const from = isDateRangeValid ? fromDate : defaultRange.from;
     const to = isDateRangeValid ? toDate : defaultRange.to;
-    return mockData.filter((item) => item.date >= from && item.date <= to);
-  }, [fromDate, toDate, isDateRangeValid, defaultRange.from, defaultRange.to]);
+    return chartData.filter((item) => item.date >= from && item.date <= to);
+  }, [chartData, fromDate, toDate, isDateRangeValid, defaultRange.from, defaultRange.to]);
 
   const pieData = useMemo(() => {
     const sumByMetric: Record<MetricKey, number> = {

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { json500 } from '@/lib/helpers/apiResponse';
 import { connectMongo } from '@/lib/mongoose';
 import AppSetting, { ProductFilterSetting } from '@/models/AppSetting';
 
@@ -52,8 +53,8 @@ export async function GET() {
         },
       }
     );
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: err?.message || 'Server error' }, { status: 500 });
+  } catch (err) {
+    return json500(err);
   }
 }
 

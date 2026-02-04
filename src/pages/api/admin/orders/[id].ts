@@ -5,6 +5,7 @@ import Customer from '@/models/Customer';
 import User from '@/models/User';
 import { getAllowedNextStates, OrderStatus as DomainOrderStatus } from '@/domain/order/orderStateMachine';
 import { getNextAuthSession, isAdminFromSession } from '@/lib/authHelpers';
+import { methodNotAllowed } from '@/lib/helpers/pagesApi';
 import { sendEmailSendGrid } from '@/lib/sendgrid';
 import { renderUserPaymentSuccessEmail } from '@/lib/emailTemplates';
 
@@ -143,7 +144,7 @@ export default async function handler(
       return res.status(200).json(detail);
     }
 
-    return res.status(405).json({ message: 'Method not allowed' });
+    return methodNotAllowed(res);
   } catch (err: any) {
     const status = err?.status || 500;
     return res.status(status).json({ message: err?.message || 'Server error' });

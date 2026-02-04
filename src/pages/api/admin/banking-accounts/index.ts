@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '@/lib/mongodb';
 import BankingAccount from '@/models/BankingAccount';
 import { isAdminFromSession } from '@/lib/authHelpers';
+import { methodNotAllowed } from '@/lib/helpers/pagesApi';
 
 type ErrorResponse = { message: string };
 
@@ -72,6 +73,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     return res.status(201).json({ item: created });
   }
 
-  return res.status(405).json({ message: 'Method not allowed' });
+  return methodNotAllowed(res);
 }
 

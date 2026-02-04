@@ -4,10 +4,11 @@ import AppSetting from '@/models/AppSetting';
 import type { IAppSetting } from '@/models/AppSetting';
 import { getPublicIdFromUrl, deleteFromCloudinary } from '@/lib/cloudinary';
 import { isAdminFromSession } from '@/lib/authHelpers';
+import { methodNotAllowed } from '@/lib/helpers/pagesApi';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET' && req.method !== 'PUT') {
-    return res.status(405).json({ message: 'Method not allowed' });
+    return methodNotAllowed(res);
   }
 
   try {

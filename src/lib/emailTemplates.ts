@@ -1,3 +1,5 @@
+import { formatVnd } from '@/lib/helpers/format';
+
 type OrderEmailItem = {
   name: string;
   quantity: number;
@@ -20,7 +22,7 @@ type OrderEmailData = {
 };
 
 function money(v: number) {
-  return (v || 0).toLocaleString('vi-VN') + ' VNĐ';
+  return formatVnd(v);
 }
 
 function statusVi(orderStatus: string) {

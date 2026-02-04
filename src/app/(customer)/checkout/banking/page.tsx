@@ -38,7 +38,7 @@ export default function BankingCheckoutPage() {
   const [banking, setBanking] = useState<BankingConfig>(null);
   const [loading, setLoading] = useState(false);
   const [canceling, setCanceling] = useState(false);
-  const [nowTick, setNowTick] = useState(() => Date.now());
+  const [nowTick, setNowTick] = useState(0);
   const didAutoRefreshExpiredRef = useRef(false);
 
   const load = async (opts?: { silent?: boolean }): Promise<OrderLite | null> => {
@@ -92,7 +92,8 @@ export default function BankingCheckoutPage() {
   const leftMs = isPendingPayable ? Math.max(0, expMs - nowTick) : 0;
   const mm = Math.floor(leftMs / 60000);
   const ss = Math.floor((leftMs % 60000) / 1000);
-  const countdownLabel = isPendingPayable ? `${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}` : '';
+  const countdownLabel =
+    isPendingPayable ? (nowTick === 0 ? '00:00' : `${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`) : '';
 
   const bankName = banking?.bankName || '';
   const accountNo = banking?.accountNo || '';
@@ -111,6 +112,7 @@ export default function BankingCheckoutPage() {
   };
 
   useEffect(() => {
+    setNowTick(Date.now());
     const t = setInterval(() => setNowTick(Date.now()), 1000);
     return () => clearInterval(t);
   }, []);

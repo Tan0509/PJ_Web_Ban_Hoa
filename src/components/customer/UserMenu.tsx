@@ -22,41 +22,31 @@ export default function UserMenu({ variant = 'desktop' }: Props) {
     return isAuthed && hasPendingPayment;
   }, [isAuthed, hasPendingPayment]);
 
+  // Lazy load: only fetch pending state when user opens the menu (avoids heavy /api/orders on every page load)
   useEffect(() => {
     if (!isAuthed) {
       setHasPendingPayment(false);
       return;
     }
+    if (!open) return;
 
     let mounted = true;
     const load = async () => {
       try {
-        const res = await fetch('/api/orders', { cache: 'no-store' });
+        const res = await fetch('/api/orders/pending', { cache: 'no-store' });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) return;
-        const orders = Array.isArray(data?.data) ? data.data : [];
-
-        const pending = orders.some((o: any) => {
-          const os = String(o?.orderStatus || '').toUpperCase();
-          const ps = String(o?.paymentStatus || '').toUpperCase();
-          const pm = String(o?.paymentMethod || '').toUpperCase();
-          // Only show indicator for payment methods that need customer action
-          const isPayableMethod = pm === 'MOMO' || pm === 'VNPAY' || pm === 'BANKING';
-          return isPayableMethod && os === 'PENDING' && ps === 'UNPAID';
-        });
-        if (mounted) setHasPendingPayment(!!pending);
+        if (mounted) setHasPendingPayment(!!data?.hasPendingPayment);
       } catch {
         // ignore
       }
     };
 
     load();
-    const t = setInterval(load, 30000);
     return () => {
       mounted = false;
-      clearInterval(t);
     };
-  }, [isAuthed]);
+  }, [isAuthed, open]);
 
   const handleClick = () => {
     if (!isAuthed) {

@@ -98,9 +98,10 @@ function fillGaps(labels: string[], values: Record<string, number>) {
 }
 
 import { isAdminFromSession } from '@/lib/authHelpers';
+import { methodNotAllowed } from '@/lib/helpers/pagesApi';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse<ApiResponse | { message: string }>) {
-  if (req.method !== 'GET') return res.status(405).json({ message: 'Method not allowed' });
+  if (req.method !== 'GET') return methodNotAllowed(res);
 
   // AUTH REFACTOR: Use NextAuth session instead of cookie-based auth
   if (!(await isAdminFromSession(req, res))) {

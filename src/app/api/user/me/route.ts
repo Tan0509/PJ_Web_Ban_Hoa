@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/pages/api/auth/[...nextauth]';
+import { requireSession } from '@/lib/authHelpers';
+import { json500 } from '@/lib/helpers/apiResponse';
 import { connectMongo } from '@/lib/mongoose';
 import User from '@/models/User';
 
@@ -19,15 +19,13 @@ type UserLean = {
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email || !(session.user as any)?.id) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireSession();
+    if (!auth) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
 
     await connectMongo();
     // MIGRATION: Customer model → User model
     // Performance: Only select fields needed for checkout/profile
-    const user = await User.findById((session.user as any).id)
+    const user = await User.findById(auth.userId)
       .select('name email phone provider role avatar address')
       .lean<UserLean | null>();
     if (!user || !user._id) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
@@ -45,7 +43,7 @@ export async function GET() {
         address: user.address || [],
       },
     });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: err?.message || 'Server error' }, { status: 500 });
+  } catch (err) {
+    return json500(err);
   }
 }

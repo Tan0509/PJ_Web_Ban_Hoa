@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { json500 } from '@/lib/helpers/apiResponse';
 import { connectMongo } from '@/lib/mongoose';
 import Order from '@/models/Order';
 import AppSetting from '@/models/AppSetting';
@@ -196,8 +197,8 @@ export async function POST(req: Request) {
 
     // MoMo expects 200 OK
     return NextResponse.json({ message: 'OK' });
-  } catch (err: any) {
-    return NextResponse.json({ message: err?.message || 'Server error' }, { status: 500 });
+  } catch (err) {
+    return json500(err, { key: 'message' });
   }
 }
 

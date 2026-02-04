@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useToast } from '@/components/ToastProvider';
+import { slugify } from '@/lib/helpers/string';
 
 // This module is cloned 100% from Product Admin
 // Keep logic and structure consistent with Product Admin
@@ -27,15 +28,6 @@ type FetchResponse = {
 };
 
 const pageSize = 10;
-
-function slugify(value: string) {
-  return value
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-}
 
 function formatDate(value?: string) {
   if (!value) return '—';

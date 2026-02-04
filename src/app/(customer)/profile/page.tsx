@@ -136,7 +136,7 @@ export default function ProfilePage() {
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [orders, setOrders] = useState<OrderLite[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
-  const [nowTick, setNowTick] = useState(() => Date.now());
+  const [nowTick, setNowTick] = useState(0);
 
   // Forms state
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -185,7 +185,8 @@ export default function ProfilePage() {
     const timeLeftMs = soonestExpiring ? Math.max(0, soonestExpiring.exp - now) : 0;
     const mm = Math.floor(timeLeftMs / 60000);
     const ss = Math.floor((timeLeftMs % 60000) / 1000);
-    const timeLeftLabel = soonestExpiring ? `${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}` : '';
+    const timeLeftLabel =
+      soonestExpiring ? (now === 0 ? '00:00' : `${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`) : '';
 
     return { pending, paid, cancelled, timeLeftLabel };
   }, [orders, nowTick]);
@@ -265,6 +266,7 @@ export default function ProfilePage() {
 
   // Countdown tick for pending payment orders
   useEffect(() => {
+    setNowTick(Date.now());
     const t = setInterval(() => setNowTick(Date.now()), 1000);
     return () => clearInterval(t);
   }, []);

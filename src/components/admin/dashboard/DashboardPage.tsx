@@ -78,15 +78,23 @@ export default function DashboardPage() {
     orders: { mode: 'default', color: DEFAULT_COLORS.orders },
     users: { mode: 'default', color: DEFAULT_COLORS.users },
   });
-  const [dateRange, setDateRange] = useState<DateRange>(() =>
-    typeof window === 'undefined' ? getDefaultRange() : getInitialFilter().dateRange
-  );
-  const [activePreset, setActivePreset] = useState<DatePresetKey | null>(() =>
-    typeof window === 'undefined' ? null : getInitialFilter().activePreset
-  );
+  const [dateRange, setDateRange] = useState<DateRange>(getDefaultRange);
+  const [activePreset, setActivePreset] = useState<DatePresetKey | null>(null);
   const [hourFrom, setHourFrom] = useState(0);
   const [hourTo, setHourTo] = useState(23);
   const defaultRange = useDefaultRange();
+
+  useEffect(() => {
+    const stored = parseStoredFilter();
+    if (stored) {
+      if (stored.activePreset !== null) {
+        setDateRange(getRangeForPreset(stored.activePreset));
+        setActivePreset(stored.activePreset);
+      } else {
+        setDateRange(stored.dateRange);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     localStorage.setItem(

@@ -1,21 +1,12 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/pages/api/auth/[...nextauth]';
+import { requireCustomerSession } from '@/lib/authHelpers';
+import { json500 } from '@/lib/helpers/apiResponse';
 import { connectMongo } from '@/lib/mongoose';
 import Order from '@/models/Order';
 import { buildVnpaySignData, formatVnpayDate, hmacSha512Hex, sortObject } from '@/lib/vnpay';
-import { getEnvSiteOrigin } from '@/lib/siteUrl';
+import { getRequestBaseUrl } from '@/lib/siteUrl';
 
 export const runtime = 'nodejs';
-
-function getBaseUrl(req: Request) {
-  const fromEnv = getEnvSiteOrigin();
-  if (fromEnv) return fromEnv;
-
-  const proto = req.headers.get('x-forwarded-proto') || 'http';
-  const host = req.headers.get('x-forwarded-host') || req.headers.get('host') || 'localhost:3000';
-  return `${proto}://${host}`;
-}
 
 function getClientIp(req: Request) {
   const xff = req.headers.get('x-forwarded-for');
@@ -25,11 +16,9 @@ function getClientIp(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    const userId = (session?.user as any)?.id as string | undefined;
-    const role = (session?.user as any)?.role as string | undefined;
-    if (!userId || !session?.user?.email) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-    if (role && role !== 'customer') return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
+    const auth = await requireCustomerSession();
+    if (auth.kind === 'unauthorized') return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    if (auth.kind === 'forbidden') return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
 
     const body = await req.json().catch(() => null);
     const orderId = String(body?.orderId || '').trim();
@@ -43,7 +32,7 @@ export async function POST(req: Request) {
     }
 
     await connectMongo();
-    const order: any = await Order.findOne({ _id: orderId, customerId: String(userId) });
+    const order: any = await Order.findOne({ _id: orderId, customerId: auth.userId });
     if (!order) return NextResponse.json({ message: 'Order not found' }, { status: 404 });
 
     if (order.paymentStatus === 'PAID') return NextResponse.json({ message: 'Order already paid' }, { status: 400 });
@@ -55,7 +44,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: 'Order payment method is not VNPay' }, { status: 400 });
     }
 
-    const baseUrl = getBaseUrl(req);
+    const baseUrl = getRequestBaseUrl(req);
     const returnUrl = `${baseUrl}/checkout/vnpay/return`;
 
     const now = new Date();
@@ -103,8 +92,8 @@ export async function POST(req: Request) {
     );
 
     return NextResponse.json({ success: true, data: { paymentUrl, orderId: String(order._id) } });
-  } catch (err: any) {
-    return NextResponse.json({ message: err?.message || 'Server error' }, { status: 500 });
+  } catch (err) {
+    return json500(err, { key: 'message' });
   }
 }
 

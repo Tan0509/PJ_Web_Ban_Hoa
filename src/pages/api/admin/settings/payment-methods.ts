@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '@/lib/mongodb';
 import AppSetting from '@/models/AppSetting';
 import { isAdminFromSession } from '@/lib/authHelpers';
+import { methodNotAllowed } from '@/lib/helpers/pagesApi';
 
 type ErrorResponse = { message: string };
 
@@ -51,5 +52,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     return res.status(200).json({ paymentMethods: sanitized, message: 'Đã lưu cài đặt phương thức thanh toán' });
   }
 
-  return res.status(405).json({ message: 'Method not allowed' });
+  return methodNotAllowed(res);
 }

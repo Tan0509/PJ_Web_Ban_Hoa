@@ -5,6 +5,8 @@ import type { IProduct } from '@/models/Product';
 import AppSetting from '@/models/AppSetting';
 import { isAdminFromSession } from '@/lib/authHelpers';
 import { getPublicIdFromUrl, deleteFromCloudinary } from '@/lib/cloudinary';
+import { methodNotAllowed } from '@/lib/helpers/pagesApi';
+import { slugify } from '@/lib/helpers/string';
 
 type ErrorResponse = { 
   message: string;
@@ -23,16 +25,6 @@ export const config = {
     },
   },
 };
-
-// Helper: Generate slug from name
-function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
-    .replace(/[^a-z0-9]+/g, '-') // Replace non-alphanumeric with dash
-    .replace(/^-+|-+$/g, ''); // Remove leading/trailing dashes
-}
 
 function sanitizeList(v: any) {
   const list = Array.isArray(v) ? v : [];
@@ -192,5 +184,5 @@ export default async function handler(
     return res.status(400).json({ message: 'Invalid action' });
   }
 
-  return res.status(405).json({ message: 'Method not allowed' });
+  return methodNotAllowed(res);
 }

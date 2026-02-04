@@ -5,13 +5,14 @@
 // DO NOT USE FOR NEW CODE - Use NextAuth signIn('credentials') instead
 
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { methodNotAllowed } from '@/lib/helpers/pagesApi';
 
 // AUTH REFACTOR: This endpoint is deprecated
 // Admin login should use NextAuth signIn('credentials') on frontend
 // NextAuth CredentialsProvider already handles admin/staff login (see [...nextauth].ts)
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method not allowed' });
+  if (req.method !== 'POST') return methodNotAllowed(res, 'successError');
   
   // AUTH REFACTOR: Return 410 Gone to indicate this endpoint is deprecated
   // Frontend should use NextAuth signIn('credentials') from 'next-auth/react'

@@ -3,6 +3,7 @@ import dbConnect from '@/lib/mongodb';
 import BankingAccount from '@/models/BankingAccount';
 import { isAdminFromSession } from '@/lib/authHelpers';
 import { getPublicIdFromUrl, deleteFromCloudinary } from '@/lib/cloudinary';
+import { methodNotAllowed } from '@/lib/helpers/pagesApi';
 
 type ErrorResponse = { message: string };
 
@@ -89,6 +90,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     return res.status(200).json({ message: 'Deleted' });
   }
 
-  return res.status(405).json({ message: 'Method not allowed' });
+  return methodNotAllowed(res);
 }
 

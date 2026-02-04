@@ -28,4 +28,6 @@ const CategorySchema = new Schema<ICategory>(
   }
 );
 
+CategorySchema.index({ active: 1, order: 1, name: 1 }); // Home + layout: find active, sort by order/name
+
 export default mongoose.models.Category || mongoose.model<ICategory>('Category', CategorySchema);

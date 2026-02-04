@@ -3,6 +3,7 @@ import dbConnect from '@/lib/mongodb';
 import Order from '@/models/Order';
 import { getAllowedNextStates, validateTransition, OrderStatus } from '@/domain/order/orderStateMachine';
 import { isAdminFromSession, getUserIdFromSession, getNextAuthSession } from '@/lib/authHelpers';
+import { methodNotAllowed } from '@/lib/helpers/pagesApi';
 import { sendEmailSendGrid } from '@/lib/sendgrid';
 import { renderUserOrderStatusUpdatedEmail } from '@/lib/emailTemplates';
 
@@ -46,7 +47,7 @@ export default async function handler(
   res: NextApiResponse<any | ErrorResponse>
 ) {
   if (!(await isAdminFromSession(req, res))) return res.status(401).json({ message: 'Unauthorized' });
-  if (req.method !== 'PATCH') return res.status(405).json({ message: 'Method not allowed' });
+  if (req.method !== 'PATCH') return methodNotAllowed(res);
   
   // AUTH REFACTOR: Get actor info from NextAuth session instead of cookies
   const session = await getNextAuthSession(req, res);

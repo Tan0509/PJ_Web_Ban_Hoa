@@ -1,13 +1,14 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '@/lib/mongodb';
 import mongoose from 'mongoose';
+import { methodNotAllowed } from '@/lib/helpers/pagesApi';
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
   if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return methodNotAllowed(res, 'error');
   }
 
   try {

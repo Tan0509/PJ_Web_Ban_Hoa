@@ -3,6 +3,7 @@ import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
 import bcrypt from 'bcryptjs';
 import { isAdminFromSession, getUserIdFromSession } from '@/lib/authHelpers';
+import { methodNotAllowed } from '@/lib/helpers/pagesApi';
 
 // User Admin Management - Scoped to Admin Panel only
 // Do NOT reuse for Customer logic
@@ -166,5 +167,5 @@ export default async function handler(
     });
   }
 
-  return res.status(405).json({ message: 'Method not allowed' });
+  return methodNotAllowed(res);
 }

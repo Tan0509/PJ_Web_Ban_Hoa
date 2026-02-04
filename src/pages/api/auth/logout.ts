@@ -1,8 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { methodNotAllowed } from '@/lib/helpers/pagesApi';
 
 // AUTH AUDIT FIX: single handler, clear all auth cookies
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method not allowed' });
+  if (req.method !== 'POST') return methodNotAllowed(res, 'successError');
 
   res.setHeader('Set-Cookie', [
     `role=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax`,

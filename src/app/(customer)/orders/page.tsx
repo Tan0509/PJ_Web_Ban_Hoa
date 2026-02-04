@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useToast } from '@/components/ToastProvider';
+import { formatVnd } from '@/lib/helpers/format';
 
 type OrderLite = {
   _id: string;
@@ -34,11 +35,12 @@ type OrderDetail = {
 };
 
 function formatMoney(v?: number) {
-  return (v || 0).toLocaleString('vi-VN') + ' VNĐ';
+  return formatVnd(v);
 }
 
 function formatCountdown(expiresAt?: string, now = Date.now()) {
   if (!expiresAt) return '';
+  if (now === 0) return '00:00'; // placeholder until client sets real time (avoids hydration mismatch)
   const exp = new Date(expiresAt).getTime();
   if (Number.isNaN(exp)) return '';
   const left = Math.max(0, exp - now);
@@ -220,6 +222,7 @@ export default function OrdersPage() {
   }, [searchParams, router]);
 
   useEffect(() => {
+    setNowTick(Date.now());
     const t = setInterval(() => setNowTick(Date.now()), 1000);
     return () => clearInterval(t);
   }, []);

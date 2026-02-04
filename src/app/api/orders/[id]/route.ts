@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/pages/api/auth/[...nextauth]';
+import { requireCustomerSession } from '@/lib/authHelpers';
+import { json500 } from '@/lib/helpers/apiResponse';
 import { connectMongo } from '@/lib/mongoose';
 import Order from '@/models/Order';
 
@@ -8,20 +8,14 @@ import Order from '@/models/Order';
 export async function GET(_: Request, ctx: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await ctx.params;
-    const session = await getServerSession(authOptions);
-    const userId = (session?.user as any)?.id as string | undefined;
-    const role = (session?.user as any)?.role as string | undefined;
-    if (!userId || !session?.user?.email) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-    }
-    if (role && role !== 'customer') {
-      return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
-    }
+    const auth = await requireCustomerSession();
+    if (auth.kind === 'unauthorized') return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    if (auth.kind === 'forbidden') return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
 
     await connectMongo();
     let order: any = await Order.findById(id).lean();
     if (!order) return NextResponse.json({ message: 'Not found' }, { status: 404 });
-    if (String(order.customerId) !== String(userId)) {
+    if (String(order.customerId) !== auth.userId) {
       return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
     }
 
@@ -63,8 +57,8 @@ export async function GET(_: Request, ctx: { params: Promise<{ id: string }> }) 
     }
 
     return NextResponse.json({ success: true, data: order });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: err?.message || 'Server error' }, { status: 500 });
+  } catch (err) {
+    return json500(err);
   }
 }
 
@@ -72,15 +66,9 @@ export async function GET(_: Request, ctx: { params: Promise<{ id: string }> }) 
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await ctx.params;
-    const session = await getServerSession(authOptions);
-    const userId = (session?.user as any)?.id as string | undefined;
-    const role = (session?.user as any)?.role as string | undefined;
-    if (!userId || !session?.user?.email) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-    }
-    if (role && role !== 'customer') {
-      return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
-    }
+    const auth = await requireCustomerSession();
+    if (auth.kind === 'unauthorized') return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    if (auth.kind === 'forbidden') return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
 
     // Optional guard: only allow cancellation when called from Banking UI
     const body = await req.json().catch(() => ({}));
@@ -92,7 +80,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     await connectMongo();
     const order: any = await Order.findById(id);
     if (!order) return NextResponse.json({ message: 'Not found' }, { status: 404 });
-    if (String(order.customerId) !== String(userId)) {
+    if (String(order.customerId) !== auth.userId) {
       return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
     }
 
@@ -116,7 +104,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     order.history = [
       ...(order.history || []),
       {
-        by: { role: 'system', id: String(userId) },
+        by: { role: 'system', id: auth.userId },
         from: prevStatus,
         to: 'CANCELLED',
         note: 'Banking: Người dùng huỷ thanh toán',
@@ -126,8 +114,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     await order.save();
 
     return NextResponse.json({ success: true, data: order });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: err?.message || 'Server error' }, { status: 500 });
+  } catch (err) {
+    return json500(err);
   }
 }
 

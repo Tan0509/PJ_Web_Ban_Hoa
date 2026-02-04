@@ -28,3 +28,15 @@ export function getEnvSiteOrigin() {
   }
 }
 
+/**
+ * Base URL for the current request (App Router Request).
+ * Uses NEXT_PUBLIC_SITE_URL if set, else x-forwarded-proto/host or host.
+ */
+export function getRequestBaseUrl(req: Request): string {
+  const fromEnv = getEnvSiteOrigin();
+  if (fromEnv) return fromEnv;
+  const proto = req.headers.get('x-forwarded-proto') || 'http';
+  const host = req.headers.get('x-forwarded-host') || req.headers.get('host') || 'localhost:3000';
+  return `${proto}://${host}`;
+}
+

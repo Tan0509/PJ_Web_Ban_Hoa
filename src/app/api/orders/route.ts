@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/pages/api/auth/[...nextauth]';
+import { requireCustomerSession } from '@/lib/authHelpers';
+import { json500 } from '@/lib/helpers/apiResponse';
 import { connectMongo } from '@/lib/mongoose';
 import Order from '@/models/Order';
 import AppSetting from '@/models/AppSetting';
@@ -91,51 +91,39 @@ async function expirePendingOrders(customerId: string) {
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
-    const userId = (session?.user as any)?.id as string | undefined;
-    const role = (session?.user as any)?.role as string | undefined;
-    if (!userId || !session?.user?.email) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-    }
-    if (role && role !== 'customer') {
-      return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
-    }
+    const auth = await requireCustomerSession();
+    if (auth.kind === 'unauthorized') return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    if (auth.kind === 'forbidden') return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
 
     await connectMongo();
-    await ensureBankingExpiresAt(String(userId));
-    await expirePendingOrders(String(userId));
+    await ensureBankingExpiresAt(auth.userId);
+    await expirePendingOrders(auth.userId);
 
-    const orders = await Order.find({ customerId: String(userId) })
+    const orders = await Order.find({ customerId: auth.userId })
       .sort({ createdAt: -1 })
       .limit(200)
       .lean();
 
     return NextResponse.json({ success: true, data: orders });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: err?.message || 'Server error' }, { status: 500 });
+  } catch (err) {
+    return json500(err);
   }
 }
 
 export async function POST(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    const userId = (session?.user as any)?.id as string | undefined;
-    const role = (session?.user as any)?.role as string | undefined;
-    if (!userId || !session?.user?.email) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-    }
-    if (role && role !== 'customer') {
-      return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
-    }
+    const auth = await requireCustomerSession();
+    if (auth.kind === 'unauthorized') return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    if (auth.kind === 'forbidden') return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
 
     await connectMongo();
     // Ensure pending banking orders have expiresAt, then expire overdue ones
-    await ensureBankingExpiresAt(String(userId));
-    await expirePendingOrders(String(userId));
+    await ensureBankingExpiresAt(auth.userId);
+    await expirePendingOrders(auth.userId);
 
     // Business rule: user must finish/cancel pending payable order before creating a new one
     const blockingOrder = await Order.findOne({
-      customerId: String(userId),
+      customerId: auth.userId,
       orderStatus: 'PENDING',
       paymentStatus: 'UNPAID',
       paymentMethod: { $in: ['MoMo', 'VNPay', 'Banking', 'Stripe'] },
@@ -191,7 +179,7 @@ export async function POST(req: Request) {
     const deliveryTime = String(customer?.deliveryTime || '').trim() || undefined;
 
     const created = await Order.create({
-      customerId: String(userId),
+      customerId: auth.userId,
       customerName: fullName,
       customerEmail: email,
       customerPhone: phone,
@@ -281,7 +269,7 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ success: true, data: created }, { status: 201 });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: err?.message || 'Server error' }, { status: 500 });
+  } catch (err) {
+    return json500(err);
   }
 }

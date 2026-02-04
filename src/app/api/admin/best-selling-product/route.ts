@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/pages/api/auth/[...nextauth]';
+import { getSessionForAppRouter } from '@/lib/authHelpers';
+import { json500 } from '@/lib/helpers/apiResponse';
 import { connectMongo } from '@/lib/mongoose';
 import Order from '@/models/Order';
 import Product from '@/models/Product';
@@ -14,8 +14,8 @@ function isAdminRole(role?: string) {
 
 export async function GET(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    const role = (session?.user as any)?.role as string | undefined;
+    const session = await getSessionForAppRouter();
+    const role = (session?.user as { role?: string } | undefined)?.role;
     if (!isAdminRole(role)) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
 
     const { searchParams } = new URL(req.url);
@@ -100,6 +100,6 @@ export async function GET(req: Request) {
     });
   } catch (e) {
     console.error(e);
-    return NextResponse.json({ message: 'Server error' }, { status: 500 });
+    return json500(e, { key: 'message' });
   }
 }

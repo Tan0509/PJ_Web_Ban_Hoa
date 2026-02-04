@@ -1,6 +1,5 @@
 import { redirect } from 'next/navigation';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/pages/api/auth/[...nextauth]';
+import { getSessionForAppRouter } from '@/lib/authHelpers';
 import CustomerLayoutClient from '@/components/customer/CustomerLayoutClient';
 import { serializeForClient } from '@/lib/serializeForClient';
 import { connectMongo } from '@/lib/mongoose';
@@ -22,7 +21,7 @@ async function getCategories() {
 // AUTH REFACTOR: Use NextAuth session instead of cookie-based auth
 export default async function CustomerLayout({ children }: { children: React.ReactNode }) {
   // AUTH REFACTOR: Get role from NextAuth session (source of truth)
-  const session = await getServerSession(authOptions);
+  const session = await getSessionForAppRouter();
   const role = (session?.user as { role?: string } | undefined)?.role || 'guest';
   
   // Redirect admin/staff to admin panel

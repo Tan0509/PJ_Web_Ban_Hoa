@@ -4,6 +4,7 @@ import Poster from '@/models/Poster';
 import type { IPoster } from '@/models/Poster';
 import { isAdminFromSession } from '@/lib/authHelpers';
 import { getPublicIdFromUrl, deleteFromCloudinary } from '@/lib/cloudinary';
+import { methodNotAllowed } from '@/lib/helpers/pagesApi';
 
 type ErrorResponse = { message: string };
 
@@ -99,7 +100,7 @@ export default async function handler(
       return res.status(400).json({ message: 'Invalid action' });
     }
 
-    return res.status(405).json({ message: 'Method not allowed' });
+    return methodNotAllowed(res);
   } catch (err: any) {
     const status = err?.status || 500;
     return res.status(status).json({ message: err?.message || 'Server error' });

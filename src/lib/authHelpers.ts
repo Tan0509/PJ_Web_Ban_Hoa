@@ -1,7 +1,47 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
+import type { Session } from 'next-auth';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/pages/api/auth/[...nextauth]';
 import { getToken } from 'next-auth/jwt';
+
+// --- App Router (no req/res) ---
+
+/**
+ * Get session in App Router route handlers (getServerSession(authOptions) with no args).
+ */
+export async function getSessionForAppRouter(): Promise<Session | null> {
+  return await getServerSession(authOptions);
+}
+
+/**
+ * Require a logged-in user in App Router. Returns { session, userId } or null if unauthorized.
+ * Route decides 401 response body (e.g. { message: 'Unauthorized' } or { success: false, error: 'Unauthorized' }).
+ */
+export async function requireSession(): Promise<{ session: Session; userId: string } | null> {
+  const session = await getSessionForAppRouter();
+  const email = session?.user?.email;
+  const id = (session?.user as { id?: string } | undefined)?.id;
+  if (!email || !id) return null;
+  return { session, userId: String(id) };
+}
+
+/**
+ * Require customer role in App Router (for orders, payments). Returns session+userId or reason (unauthorized/forbidden).
+ * Route decides 401/403 response bodies.
+ */
+export async function requireCustomerSession(): Promise<
+  { session: Session; userId: string } | { kind: 'unauthorized' } | { kind: 'forbidden' }
+> {
+  const session = await getSessionForAppRouter();
+  const email = session?.user?.email;
+  const id = (session?.user as { id?: string } | undefined)?.id;
+  const role = (session?.user as { role?: string } | undefined)?.role;
+  if (!email || !id) return { kind: 'unauthorized' };
+  if (role && role !== 'customer') return { kind: 'forbidden' };
+  return { session, userId: String(id) };
+}
+
+// --- Pages Router (req, res) ---
 
 /**
  * AUTH REFACTOR: Get NextAuth session in Pages Router API handlers

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { json500 } from '@/lib/helpers/apiResponse';
 import { connectMongo } from '@/lib/mongoose';
 import BankingAccount from '@/models/BankingAccount';
 
@@ -27,8 +28,8 @@ export async function GET() {
         note: account.note,
       },
     });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: err?.message || 'Server error' }, { status: 500 });
+  } catch (err) {
+    return json500(err);
   }
 }
 

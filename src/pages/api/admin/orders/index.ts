@@ -4,6 +4,7 @@ import Order from '@/models/Order';
 import Customer from '@/models/Customer';
 import User from '@/models/User';
 import { isAdminFromSession } from '@/lib/authHelpers';
+import { methodNotAllowed } from '@/lib/helpers/pagesApi';
 
 type ErrorResponse = { message: string };
 
@@ -43,7 +44,7 @@ export default async function handler(
   res: NextApiResponse<ListResponse | ErrorResponse>
 ) {
   if (!(await isAdminFromSession(req, res))) return res.status(401).json({ message: 'Unauthorized' });
-  if (req.method !== 'GET') return res.status(405).json({ message: 'Method not allowed' });
+  if (req.method !== 'GET') return methodNotAllowed(res);
 
   await dbConnect();
 

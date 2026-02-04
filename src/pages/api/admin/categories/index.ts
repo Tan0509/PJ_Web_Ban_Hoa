@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '@/lib/mongodb';
 import Category from '@/models/Category';
 import { isAdminFromSession } from '@/lib/authHelpers';
+import { methodNotAllowed } from '@/lib/helpers/pagesApi';
 
 type CategoryPayload = {
   name: string;
@@ -155,7 +156,7 @@ export default async function handler(
       });
     }
 
-    return res.status(405).json({ message: 'Method not allowed' });
+    return methodNotAllowed(res);
   } catch (err: any) {
     const status = err?.status || 500;
     return res.status(status).json({ message: err?.message || 'Server error' });

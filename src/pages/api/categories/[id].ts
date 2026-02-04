@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '@/lib/mongodb';
 import Category from '@/models/Category';
+import { methodNotAllowed } from '@/lib/helpers/pagesApi';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   await dbConnect();
@@ -18,5 +19,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({ success: true, data: deleted });
   }
 
-  return res.status(405).json({ success: false, error: 'Method not allowed' });
+  return methodNotAllowed(res, 'successError');
 }
