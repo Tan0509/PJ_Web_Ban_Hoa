@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useMemo } from 'react';
 import { formatVnd } from '@/lib/helpers/format';
+import { getOptimizedImageUrl } from '@/lib/helpers/image';
 import { useStore } from './StoreProvider';
 
 type Product = {
@@ -56,7 +57,7 @@ export default function ProductCard({ product }: { product: Product }) {
         <div className="relative aspect-[3/4] bg-gray-100">
           {img ? (
             <Image
-              src={img}
+              src={getOptimizedImageUrl(img, { width: 400 })}
               alt={product.name}
               fill
               sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"

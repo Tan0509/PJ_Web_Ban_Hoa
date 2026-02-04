@@ -6,6 +6,7 @@ import { createPortal } from 'react-dom';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import { formatVnd } from '@/lib/helpers/format';
+import { getOptimizedImageUrl } from '@/lib/helpers/image';
 import { useStore } from './StoreProvider';
 import ProductCard from './ProductCard';
 
@@ -94,7 +95,7 @@ export default function ProductDetail({ product, related }: { product: Product; 
           <div className="relative w-full aspect-square overflow-hidden rounded-lg border-2 border-gray-200 bg-gray-50 shadow-lg group cursor-pointer" onClick={handleMainImageClick}>
             {activeImg ? (
               <Image
-                src={activeImg}
+                src={getOptimizedImageUrl(activeImg, { width: 800 })}
                 alt={product.name}
                 fill
                 sizes="(max-width: 1024px) 100vw, 50vw"
@@ -133,7 +134,7 @@ export default function ProductDetail({ product, related }: { product: Product; 
                   }`}
                 >
                   <Image
-                    src={img}
+                    src={getOptimizedImageUrl(img, { width: 120 })}
                     alt={`${product.name}-${idx}`}
                     fill
                     sizes="(max-width: 640px) 25vw, 16vw"
@@ -324,7 +325,7 @@ export default function ProductDetail({ product, related }: { product: Product; 
               <div className="relative max-w-[90vw] max-h-[90vh] flex items-center justify-center">
                 <div className="relative w-full h-[90vh] max-w-[90vw]">
                   <Image
-                    src={modalImage}
+                    src={getOptimizedImageUrl(modalImage, { width: 1200 })}
                     alt={product.name}
                     fill
                     sizes="90vw"

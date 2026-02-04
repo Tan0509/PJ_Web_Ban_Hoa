@@ -2,6 +2,60 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Skeleton loading – shimmer nhẹ, thẩm mỹ */
+@keyframes skeleton-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    #f9fafb 0%,
+    #f3f4f6 20%,
+    #e5e7eb 50%,
+    #f3f4f6 80%,
+    #f9fafb 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.8s ease-in-out infinite;
+}
+.skeleton-shimmer-brand {
+  background: linear-gradient(
+    90deg,
+    #f0fdfa 0%,
+    #e6fffa 25%,
+    #ccfbf1 50%,
+    #e6fffa 75%,
+    #f0fdfa 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.8s ease-in-out infinite;
+}
+html.dark [data-layout="customer"] .skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    #374151 0%,
+    #4b5563 20%,
+    #6b7280 50%,
+    #4b5563 80%,
+    #374151 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.8s ease-in-out infinite;
+}
+html.dark [data-layout="customer"] .skeleton-shimmer-brand {
+  background: linear-gradient(
+    90deg,
+    #134e4a 0%,
+    #0f766e 25%,
+    #14b8a6 50%,
+    #0f766e 75%,
+    #134e4a 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.8s ease-in-out infinite;
+}
+
 :root {
   color-scheme: light;
 }

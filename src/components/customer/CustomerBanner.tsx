@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
+import { getOptimizedImageUrl } from '@/lib/helpers/image';
 
 type Poster = { _id?: string; imageUrl: string; link?: string };
 
@@ -60,7 +61,7 @@ export default function CustomerBanner({ posters }: Props) {
     >
       {src ? (
         <Image
-          src={src}
+          src={getOptimizedImageUrl(src, { width: 1200 })}
           alt="Poster"
           fill
           sizes="100vw"

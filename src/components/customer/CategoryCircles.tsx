@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import { getOptimizedImageUrl } from '@/lib/helpers/image';
 
 type Category = {
   _id?: string;
@@ -30,7 +31,7 @@ export default function CategoryCircles({ categories, hasMore }: Props) {
               <div className="relative h-72 w-72 rounded-full overflow-hidden shadow-md">
                 {img ? (
                   <Image
-                    src={img}
+                    src={getOptimizedImageUrl(img, { width: 400 })}
                     alt={c.name}
                     fill
                     sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
