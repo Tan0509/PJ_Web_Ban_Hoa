@@ -36,3 +36,4 @@ dist/
 build/
 .vercel
 tsconfig.tsbuildinfo
+.env*
