@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getPageCache, setPageCache } from '@/lib/pageCache';
+import { getPageCache, setPageCache, clearPageCacheKey } from '@/lib/pageCache';
 import CustomerBanner from '@/components/customer/CustomerBanner';
 import CategoryCircles from '@/components/customer/CategoryCircles';
 import nextDynamic from 'next/dynamic';
@@ -77,6 +77,7 @@ export default function HomeClient() {
   const [data, setData] = useState<HomeData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryTrigger, setRetryTrigger] = useState(0);
 
   useEffect(() => {
     const cached = getPageCache<HomeData>(CACHE_KEY_HOME);
@@ -88,11 +89,28 @@ export default function HomeClient() {
 
     let cancelled = false;
     fetch('/api/home', { cache: 'no-store' })
-      .then((res) => res.json())
-      .then((json) => {
+      .then(async (res) => {
+        if (cancelled) return;
+        const raw = await res.text();
+        let json: any = null;
+        if (raw) {
+          try {
+            json = JSON.parse(raw);
+          } catch {
+            json = null;
+          }
+        }
+        if (!res.ok) {
+          const msg = res.status === 502
+            ? 'Máy chủ tạm lỗi (502). Kiểm tra biến môi trường trên Netlify hoặc thử lại.'
+            : `Lỗi ${res.status}. Thử lại sau.`;
+          setError(msg);
+          setLoading(false);
+          return;
+        }
         if (cancelled) return;
         if (!json?.success || !json?.data) {
-          setError(json?.message || 'Không tải được dữ liệu');
+          setError((json as { message?: string })?.message || 'Không tải được dữ liệu');
           setLoading(false);
           return;
         }
@@ -110,7 +128,14 @@ export default function HomeClient() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [retryTrigger]);
+
+  const handleRetry = () => {
+    clearPageCacheKey(CACHE_KEY_HOME);
+    setError(null);
+    setLoading(true);
+    setRetryTrigger((t) => t + 1);
+  };
 
   if (loading && !data) {
     return (
@@ -123,10 +148,17 @@ export default function HomeClient() {
 
   if (error && !data) {
     return (
-      <div className="bg-white min-h-screen">
-        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 text-center text-sm text-amber-800">
+      <div className="bg-white min-h-screen flex flex-col items-center justify-center py-20 px-4">
+        <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-center text-sm text-amber-800 max-w-md">
           {error}
         </div>
+        <button
+          type="button"
+          onClick={handleRetry}
+          className="mt-4 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-lg transition-colors"
+        >
+          Thử lại
+        </button>
       </div>
     );
   }

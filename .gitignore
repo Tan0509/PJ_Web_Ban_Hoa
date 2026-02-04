@@ -37,3 +37,6 @@ build/
 .vercel
 tsconfig.tsbuildinfo
 .env*
+
+# Local Netlify folder
+.netlify

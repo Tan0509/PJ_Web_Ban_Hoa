@@ -5,6 +5,8 @@ import { json500 } from '@/lib/helpers/apiResponse';
 /**
  * GET /api/home – data cho trang home (cache client TTL 30p).
  */
+export const runtime = 'nodejs';
+
 export async function GET() {
   try {
     const data = await getHomeData();
