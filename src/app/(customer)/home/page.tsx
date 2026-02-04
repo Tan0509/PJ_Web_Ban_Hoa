@@ -8,8 +8,8 @@ import CustomerBanner from '@/components/customer/CustomerBanner';
 import CategoryCircles from '@/components/customer/CategoryCircles';
 import FeaturedProductsSection from '@/components/customer/FeaturedProductsSection';
 
-// Revalidate every 60s so home is fast for repeat visits; first request still hits DB
-export const revalidate = 60;
+// Render on request so build does not run DB (avoids 60s timeout when DB slow/unavailable)
+export const dynamic = 'force-dynamic';
 
 export default async function Home() {
   let categories: unknown[] = [];
