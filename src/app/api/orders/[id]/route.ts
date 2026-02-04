@@ -9,8 +9,8 @@ export async function GET(_: Request, ctx: { params: Promise<{ id: string }> }) 
   try {
     const { id } = await ctx.params;
     const auth = await requireCustomerSession();
-    if (auth.kind === 'unauthorized') return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-    if (auth.kind === 'forbidden') return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
+    if ('kind' in auth && auth.kind === 'unauthorized') return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    if ('kind' in auth && auth.kind === 'forbidden') return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
 
     await connectMongo();
     let order: any = await Order.findById(id).lean();
@@ -67,8 +67,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   try {
     const { id } = await ctx.params;
     const auth = await requireCustomerSession();
-    if (auth.kind === 'unauthorized') return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-    if (auth.kind === 'forbidden') return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
+    if ('kind' in auth && auth.kind === 'unauthorized') return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    if ('kind' in auth && auth.kind === 'forbidden') return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
 
     // Optional guard: only allow cancellation when called from Banking UI
     const body = await req.json().catch(() => ({}));

@@ -17,8 +17,8 @@ function getClientIp(req: Request) {
 export async function POST(req: Request) {
   try {
     const auth = await requireCustomerSession();
-    if (auth.kind === 'unauthorized') return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-    if (auth.kind === 'forbidden') return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
+    if ('kind' in auth && auth.kind === 'unauthorized') return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    if ('kind' in auth && auth.kind === 'forbidden') return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
 
     const body = await req.json().catch(() => null);
     const orderId = String(body?.orderId || '').trim();

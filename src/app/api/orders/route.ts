@@ -92,8 +92,8 @@ async function expirePendingOrders(customerId: string) {
 export async function GET() {
   try {
     const auth = await requireCustomerSession();
-    if (auth.kind === 'unauthorized') return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-    if (auth.kind === 'forbidden') return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
+    if ('kind' in auth && auth.kind === 'unauthorized') return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    if ('kind' in auth && auth.kind === 'forbidden') return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
 
     await connectMongo();
     await ensureBankingExpiresAt(auth.userId);
@@ -113,8 +113,8 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const auth = await requireCustomerSession();
-    if (auth.kind === 'unauthorized') return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-    if (auth.kind === 'forbidden') return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
+    if ('kind' in auth && auth.kind === 'unauthorized') return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    if ('kind' in auth && auth.kind === 'forbidden') return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
 
     await connectMongo();
     // Ensure pending banking orders have expiresAt, then expire overdue ones
