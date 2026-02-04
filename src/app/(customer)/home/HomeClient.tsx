@@ -4,9 +4,18 @@ import { useEffect, useState } from 'react';
 import { getPageCache, setPageCache } from '@/lib/pageCache';
 import CustomerBanner from '@/components/customer/CustomerBanner';
 import CategoryCircles from '@/components/customer/CategoryCircles';
-import FeaturedProductsSection from '@/components/customer/FeaturedProductsSection';
-import CategoryProductsByCategory from '@/components/customer/CategoryProductsByCategory';
 import nextDynamic from 'next/dynamic';
+
+// Preload chunks sớm: above-the-fold trước, phần dưới sau (giữ dynamic, không đổi UI/API/layout)
+function usePreloadHomeChunks() {
+  useEffect(() => {
+    import('@/components/customer/FeaturedProductsSection');
+    const t = setTimeout(() => {
+      import('@/components/customer/CategoryProductsByCategory');
+    }, 80);
+    return () => clearTimeout(t);
+  }, []);
+}
 
 const FeaturedProductsSectionDynamic = nextDynamic(
   () => import('@/components/customer/FeaturedProductsSection'),
@@ -64,6 +73,7 @@ type HomeData = {
 };
 
 export default function HomeClient() {
+  usePreloadHomeChunks();
   const [data, setData] = useState<HomeData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
