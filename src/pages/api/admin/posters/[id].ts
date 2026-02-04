@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '@/lib/mongodb';
 import Poster from '@/models/Poster';
+import type { IPoster } from '@/models/Poster';
 import { isAdminFromSession } from '@/lib/authHelpers';
 import { getPublicIdFromUrl, deleteFromCloudinary } from '@/lib/cloudinary';
 
@@ -54,7 +55,7 @@ export default async function handler(
     }
 
     if (req.method === 'DELETE') {
-      const doc = await Poster.findById(id).lean();
+      const doc = await Poster.findById(id).lean() as IPoster | null;
       if (!doc) {
         const err = new Error('Not found');
         (err as any).status = 404;

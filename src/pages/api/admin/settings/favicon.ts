@@ -1,6 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '@/lib/mongodb';
 import AppSetting from '@/models/AppSetting';
+import type { IAppSetting } from '@/models/AppSetting';
+import { getPublicIdFromUrl, deleteFromCloudinary } from '@/lib/cloudinary';
 import { isAdminFromSession } from '@/lib/authHelpers';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -27,7 +29,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ message: 'Invalid favicon format' });
       }
 
-      const current = await AppSetting.findOne({ key: 'singleton' }).lean();
+      const current = await AppSetting.findOne({ key: 'singleton' }).lean() as IAppSetting | null;
       const oldFavicon = current?.favicon;
       if (typeof oldFavicon === 'string') {
         const publicId = getPublicIdFromUrl(oldFavicon);

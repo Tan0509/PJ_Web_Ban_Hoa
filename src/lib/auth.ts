@@ -10,11 +10,11 @@ import { cookies } from 'next/headers';
  * This function reads cookies directly, which is deprecated
  * Use getRoleFromSession() from @/lib/authHelpers for NextAuth-based auth
  */
-export function getRoleFromCookies() {
+export async function getRoleFromCookies() {
   // AUTH REFACTOR: Cookie-based auth is deprecated
   // This function is kept for backward compatibility only
   // In production, this should return 'guest' as cookies are no longer set
-  const store = cookies();
+  const store = await cookies();
   const role = store.get('role')?.value || store.get('role_client')?.value || 'guest';
   return role;
 }
@@ -24,11 +24,11 @@ export function getRoleFromCookies() {
  * This function reads cookies directly, which is deprecated
  * Use getNextAuthSession() from @/lib/authHelpers for NextAuth-based auth
  */
-export function getUserFromCookies() {
+export async function getUserFromCookies() {
   // AUTH REFACTOR: Cookie-based auth is deprecated
   // This function is kept for backward compatibility only
   // In production, this should return guest data as cookies are no longer set
-  const store = cookies();
+  const store = await cookies();
   return {
     role: store.get('role')?.value || store.get('role_client')?.value || 'guest',
     userId: store.get('userId')?.value,

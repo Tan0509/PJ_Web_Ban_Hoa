@@ -103,7 +103,7 @@ export default function DashboardPage() {
       return fallback;
     }
     const isSingleDay = dateRange.from === dateRange.to;
-    const groupBy = activePreset === 'month' ? 'month' : activePreset === 'year' ? 'year' : isSingleDay ? 'hour' : 'day';
+    const groupBy: 'day' | 'month' | 'year' | 'hour' = activePreset === 'month' ? 'month' : activePreset === 'year' ? 'year' : isSingleDay ? 'hour' : 'day';
     return { from: dateRange.from, to: dateRange.to, groupBy };
   }, [dateRange.from, dateRange.to, defaultRange, activePreset]);
 

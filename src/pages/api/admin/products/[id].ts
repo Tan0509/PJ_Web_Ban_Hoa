@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '@/lib/mongodb';
 import Product from '@/models/Product';
+import type { IProduct } from '@/models/Product';
 import AppSetting from '@/models/AppSetting';
 import { isAdminFromSession } from '@/lib/authHelpers';
 import { getPublicIdFromUrl, deleteFromCloudinary } from '@/lib/cloudinary';
@@ -157,7 +158,7 @@ export default async function handler(
   }
 
   if (req.method === 'DELETE') {
-    const doc = await Product.findById(id).lean();
+    const doc = await Product.findById(id).lean() as IProduct | null;
     if (!doc) return res.status(404).json({ message: 'Not found' });
     const images: string[] = Array.isArray(doc.images) ? doc.images : [];
     for (const url of images) {
