@@ -40,7 +40,7 @@ async function createAdmin() {
     if (!MONGODB_URI) {
       console.error('❌ MONGODB_URI not found');
       console.error('   Please set MONGODB_URI in .env.local or export it:');
-      console.error('   export MONGODB_URI="mongodb+srv://tanbanhoa:050997@pj-website-ban-hoa.fdeudnd.mongodb.net/?appName=PJ-Website-Ban-Hoa"');
+      console.error('   export MONGODB_URI="mongodb+srv://USER:PASSWORD@cluster.mongodb.net/?appName=..."');
       process.exit(1);
     }
 
