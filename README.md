@@ -136,8 +136,7 @@ NEXTAUTH_URL=http://localhost:3000
 NEXTAUTH_SECRET=your-secret-key-here-generate-with-openssl-rand-base64-32
 
 # Stripe (tùy chọn - có thể để trống để dùng mock checkout)
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
-STRIPE_SECRET_KEY=sk_test_...
+
 
 # Node Environment
 NODE_ENV=development
