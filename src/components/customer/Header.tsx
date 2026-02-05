@@ -10,10 +10,10 @@ import CustomerDarkModeToggle from './CustomerDarkModeToggle';
 import { useStore } from './StoreProvider';
 
 interface Props {
-  categories?: any[]; // không dùng, chỉ để tương thích chữ ký cũ
+  categories?: any[];
 }
 
-export default function CustomerHeader(_: Props) {
+export default function CustomerHeader({ categories }: Props) {
   const pathname = usePathname();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -124,7 +124,7 @@ export default function CustomerHeader(_: Props) {
 
         <div className="hidden sm:block bg-[#0f5c5c] text-white rounded-md overflow-visible">
           <nav className="flex items-center justify-center gap-6 px-6 py-3 text-sm font-semibold uppercase tracking-wide">
-            <CategoryMenu variant="desktop" />
+            <CategoryMenu variant="desktop" categories={categories} />
           </nav>
         </div>
       </div>
@@ -132,7 +132,7 @@ export default function CustomerHeader(_: Props) {
       {mobileOpen && (
         <div className="sm:hidden bg-[#0f5c5c] text-white">
           <div className="container-section py-3 flex flex-col gap-3">
-            <CategoryMenu variant="mobile" />
+            <CategoryMenu variant="mobile" categories={categories} />
             <div className="flex items-center justify-between pt-2">
               <CustomerDarkModeToggle />
               <UserMenu variant="mobile" />

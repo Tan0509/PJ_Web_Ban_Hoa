@@ -50,7 +50,7 @@ export default function CategoryFilterSidebar({ categoryName, totalProducts, slu
     let mounted = true;
     const load = async () => {
       try {
-        const res = await fetch('/api/categories', { cache: 'no-store' });
+        const res = await fetch('/api/categories');
         if (!res.ok) return;
         const json = await res.json();
         const list: CategoryItem[] = json?.data || [];

@@ -33,7 +33,15 @@ export async function GET(
       return NextResponse.json({ message: 'Not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ success: true, data });
+    return NextResponse.json(
+      { success: true, data },
+      {
+        headers: {
+          // Public cache for category pages
+          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+        },
+      }
+    );
   } catch (err) {
     return json500(err);
   }

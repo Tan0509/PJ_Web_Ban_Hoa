@@ -39,12 +39,13 @@ export async function GET(req: Request) {
         const catId = category._id?.toString?.() || '';
         const catSlug = category.slug || '';
 
+        if (!catSlug) {
+          return { category, products: [], hasMore: false };
+        }
+
         const productsRaw = await Product.find({
           active: true,
-          $or: [
-            ...(catId ? [{ categoryIds: catId }, { categoryId: catId }] : []),
-            ...(catSlug ? [{ categorySlug: catSlug }] : []),
-          ],
+          categorySlug: catSlug,
         })
           .select('name price salePrice discountPercent images slug active categoryId categoryIds categorySlug')
           .sort({ createdAt: -1 })

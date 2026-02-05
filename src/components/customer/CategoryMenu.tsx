@@ -14,21 +14,30 @@ type Category = {
 
 interface Props {
   variant?: 'desktop' | 'mobile';
+  categories?: Category[];
 }
 
 const MAX_VISIBLE = 7;
 
-export default function CategoryMenu({ variant = 'desktop' }: Props) {
+export default function CategoryMenu({ variant = 'desktop', categories: categoriesProp }: Props) {
   const pathname = usePathname();
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<Category[]>(categoriesProp || []);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const normalize = (list: Category[]) =>
+    list
+      .filter((c) => c?.active !== false)
+      .sort((a, b) => ((a as { menuOrder?: number }).menuOrder ?? 0) - ((b as { menuOrder?: number }).menuOrder ?? 0));
 
   useEffect(() => {
+    if (categoriesProp && categoriesProp.length) {
+      setCategories(normalize(categoriesProp));
+      return;
+    }
     let mounted = true;
     const load = async () => {
       try {
-        const res = await fetch('/api/categories', { cache: 'no-store' });
+        const res = await fetch('/api/categories');
         if (!res.ok) return;
         const json = await res.json();
         const list: Category[] = json?.data || [];
@@ -44,7 +53,7 @@ export default function CategoryMenu({ variant = 'desktop' }: Props) {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [categoriesProp]);
 
   const items = useMemo(
     () => [

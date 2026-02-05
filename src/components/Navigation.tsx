@@ -5,7 +5,7 @@ async function fetchCategories() {
   try {
     const base = getEnvSiteOrigin();
     const res = await fetch(`${base}/api/categories`, {
-      cache: 'no-store',
+      next: { revalidate: 300 },
     });
     if (!res.ok) return [];
     const json = await res.json();

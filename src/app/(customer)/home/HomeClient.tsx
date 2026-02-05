@@ -103,7 +103,7 @@ export default function HomeClient() {
     };
 
     const prefetchCategoryProducts = async (categories: unknown[]) => {
-      const first = categories.slice(0, 2) as any[];
+      const first = categories.slice(0, 4) as any[];
       const ids = first.map((c) => c?._id).filter(Boolean).join(',');
       const slugs = first.map((c) => c?.slug).filter(Boolean).join(',');
       if (!ids && !slugs) return;

@@ -54,10 +54,18 @@ export async function GET(
     const plainProduct = JSON.parse(JSON.stringify(product));
     const plainRelated = JSON.parse(JSON.stringify(related));
 
-    return NextResponse.json({
-      success: true,
-      data: { product: plainProduct, related: plainRelated },
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        data: { product: plainProduct, related: plainRelated },
+      },
+      {
+        headers: {
+          // Public cache for product detail
+          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+        },
+      }
+    );
   } catch (err) {
     return json500(err);
   }

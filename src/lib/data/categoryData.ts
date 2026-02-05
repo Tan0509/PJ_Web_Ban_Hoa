@@ -18,11 +18,7 @@ const PAGE_SIZE = 24;
 function buildFilters(slug: string, searchParams: SearchParams, categoryId: string) {
   const filters: any = {
     active: true,
-    $or: [
-      { categorySlug: slug },
-      { categoryId: categoryId },
-      { categoryIds: categoryId },
-    ],
+    categorySlug: slug,
   };
 
   const minPrice = Number(searchParams.minPrice);

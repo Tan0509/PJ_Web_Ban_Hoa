@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import ProductCard from './ProductCard';
 
@@ -31,12 +31,11 @@ type Props = {
   items: Group[];
 };
 
-const BATCH_SIZE = 2;
+const BATCH_SIZE = 3;
 
 export default function CategoryProductsByCategory({ items }: Props) {
   const [loaded, setLoaded] = useState<Record<string, { products: Product[]; hasMore: boolean }>>({});
   const [loading, setLoading] = useState(false);
-  const sentinelRef = useRef<HTMLDivElement>(null);
 
   const pending = items.filter((g) => g.products.length === 0 && g.category._id && !loaded[String(g.category._id)]);
   const hasPending = pending.length > 0;
@@ -72,17 +71,9 @@ export default function CategoryProductsByCategory({ items }: Props) {
   }, [loading, hasPending, pending]);
 
   useEffect(() => {
-    if (!hasPending || !sentinelRef.current) return;
-    const el = sentinelRef.current;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting) loadNext();
-      },
-      { rootMargin: '200px', threshold: 0 }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [hasPending, loadNext]);
+    if (!hasPending || loading) return;
+    loadNext();
+  }, [hasPending, loading, loadNext]);
 
   const displayGroups: Group[] = items.map((g) => {
     const id = g.category._id?.toString?.();
@@ -134,7 +125,7 @@ export default function CategoryProductsByCategory({ items }: Props) {
           )}
         </div>
       ))}
-      {hasPending && <div ref={sentinelRef} className="min-h-[120px]" aria-hidden />}
+      {hasPending && <div className="min-h-[120px]" aria-hidden />}
     </section>
   );
 }
