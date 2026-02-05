@@ -69,7 +69,7 @@ export async function GET(req: Request) {
       {
         headers: {
           // Cache at the edge to speed up repeated home loads
-          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+          'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=3600',
         },
       }
     );
