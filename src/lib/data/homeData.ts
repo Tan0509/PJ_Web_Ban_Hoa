@@ -3,8 +3,7 @@ import Category from '@/models/Category';
 import Poster from '@/models/Poster';
 import Product from '@/models/Product';
 
-const PREVIEW_LIMIT = 8;
-const PREVIEW_CATEGORY_COUNT = 4;
+import { getHomeCategoryCache } from '@/lib/data/homeCategoryCache';
 
 export async function getHomeData() {
   await connectMongo();
@@ -34,36 +33,7 @@ export async function getHomeData() {
   const featuredProducts = featuredProductsRaw.slice(0, 8);
   const featuredHasMore = featuredProductsRaw.length > 8;
 
-  const categoryProducts = await Promise.all(
-    categories.map(async (category: unknown, idx: number) => {
-      const c = category as { slug?: string };
-      const catSlug = c.slug || '';
-      if (!catSlug) {
-        return { category, products: [], hasMore: false };
-      }
-
-      if (idx >= PREVIEW_CATEGORY_COUNT) {
-        return { category, products: [], hasMore: false };
-      }
-
-      const productsRaw = await Product.find({
-        active: true,
-        categorySlug: catSlug,
-      })
-        .select('name price salePrice discountPercent images slug active categorySlug')
-        .sort({ createdAt: -1 })
-        .limit(PREVIEW_LIMIT)
-        .lean();
-
-      const products = productsRaw.map((p: any) => {
-        const { images, ...rest } = p;
-        const thumb = Array.isArray(images) ? images.slice(0, 1) : images;
-        return { ...rest, images: thumb };
-      });
-
-      return { category, products, hasMore: products.length >= PREVIEW_LIMIT };
-    })
-  );
+  const categoryProducts = await getHomeCategoryCache();
 
   return {
     categories,
