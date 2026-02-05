@@ -31,7 +31,7 @@ type Props = {
   items: Group[];
 };
 
-const BATCH_SIZE = 3;
+const BATCH_SIZE = 2;
 
 export default function CategoryProductsByCategory({ items }: Props) {
   const [loaded, setLoaded] = useState<Record<string, { products: Product[]; hasMore: boolean }>>({});
@@ -43,18 +43,20 @@ export default function CategoryProductsByCategory({ items }: Props) {
   const loadNext = useCallback(async () => {
     if (loading || !hasPending) return;
     const batch = pending.slice(0, BATCH_SIZE);
-    const ids = batch.map((g) => g.category._id).filter(Boolean).join(',');
     const slugs = batch.map((g) => g.category.slug).filter(Boolean).join(',');
-    if (!ids && !slugs) return;
+    if (!slugs) return;
 
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      if (ids) params.set('categoryIds', ids);
       if (slugs) params.set('categorySlugs', slugs);
-      const res = await fetch(`/api/home/category-products?${params.toString()}`, { cache: 'no-store' });
+      const res = await fetch(`/api/home/category-products?${params.toString()}`);
       const json = await res.json().catch(() => ({}));
-      if (!res.ok) return;
+      if (!res.ok) {
+        // Avoid hammering the API on failures
+        await new Promise((r) => setTimeout(r, 3000));
+        return;
+      }
 
       const data = Array.isArray(json?.data) ? json.data : [];
       setLoaded((prev) => {

@@ -44,18 +44,17 @@ export async function GET(req: Request) {
           active: true,
           categorySlug: catSlug,
         })
-          .select('name price salePrice discountPercent images slug active categoryId categoryIds categorySlug')
+          .select('name price salePrice discountPercent images slug active categorySlug')
           .sort({ createdAt: -1 })
           .limit(10)
           .lean();
 
-        const hasMore = productsRaw.length > 9;
-        const products = productsRaw
-          .slice(0, 9)
-          .map((p: any) => {
-            const { categoryId, categoryIds, categorySlug, ...rest } = p;
-            return rest;
-          });
+        const hasMore = productsRaw.length > 8;
+        const products = productsRaw.slice(0, 8).map((p: any) => {
+          const { images, categorySlug, ...rest } = p;
+          const thumb = Array.isArray(images) ? images.slice(0, 1) : images;
+          return { ...rest, images: thumb, categorySlug };
+        });
 
         return { category, products, hasMore };
       })

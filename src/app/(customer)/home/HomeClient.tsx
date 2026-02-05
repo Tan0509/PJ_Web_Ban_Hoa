@@ -104,13 +104,11 @@ export default function HomeClient() {
 
     const prefetchCategoryProducts = async (categories: unknown[]) => {
       const first = categories.slice(0, 4) as any[];
-      const ids = first.map((c) => c?._id).filter(Boolean).join(',');
       const slugs = first.map((c) => c?.slug).filter(Boolean).join(',');
-      if (!ids && !slugs) return;
+      if (!slugs) return;
       const params = new URLSearchParams();
-      if (ids) params.set('categoryIds', ids);
       if (slugs) params.set('categorySlugs', slugs);
-      const res = await fetch(`/api/home/category-products?${params.toString()}`, { cache: 'no-store' });
+      const res = await fetch(`/api/home/category-products?${params.toString()}`);
       const json = await res.json().catch(() => ({}));
       if (!res.ok || cancelled) return;
       const incoming = Array.isArray(json?.data) ? (json.data as CategoryGroup[]) : [];
