@@ -33,7 +33,13 @@ export async function getHomeData() {
   const featuredProducts = featuredProductsRaw.slice(0, 8);
   const featuredHasMore = featuredProductsRaw.length > 8;
 
-  const categoryProducts = await getHomeCategoryCache();
+  let categoryProducts: unknown[] = [];
+  try {
+    categoryProducts = await getHomeCategoryCache();
+  } catch (err) {
+    console.error('[homeData] Failed to load home category cache:', err);
+    categoryProducts = [];
+  }
 
   return {
     categories,
