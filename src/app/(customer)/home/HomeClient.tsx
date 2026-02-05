@@ -61,15 +61,16 @@ const CategoryProductsByCategoryDynamic = nextDynamic(
 
 const CACHE_KEY_HOME = 'home';
 
+type CategoryGroup = { category: unknown; products: unknown[]; hasMore: boolean };
+
 type HomeData = {
   categories: unknown[];
   posters: unknown[];
-  featuredProductsRaw: unknown[];
   topCategories: unknown[];
   hasMore: boolean;
   featuredProducts: unknown[];
   featuredHasMore: boolean;
-  categoryProducts: { category: unknown; products: unknown[]; hasMore: boolean }[];
+  categoryProducts: CategoryGroup[];
 };
 
 export default function HomeClient() {
@@ -81,13 +82,49 @@ export default function HomeClient() {
 
   useEffect(() => {
     const cached = getPageCache<HomeData>(CACHE_KEY_HOME);
-    if (cached) {
+    if (cached && Array.isArray(cached.categoryProducts)) {
       setData(cached);
       setLoading(false);
       return;
     }
 
     let cancelled = false;
+    const mergeCategoryGroups = (current: CategoryGroup[], incoming: CategoryGroup[]) => {
+      const nextMap = new Map<string, { products: unknown[]; hasMore: boolean }>();
+      incoming.forEach((g) => {
+        const id = (g as any)?.category?._id?.toString?.();
+        if (id) nextMap.set(id, { products: g.products || [], hasMore: !!g.hasMore });
+      });
+      return current.map((g) => {
+        const id = (g as any)?.category?._id?.toString?.();
+        const hit = id ? nextMap.get(id) : undefined;
+        return hit ? { ...g, products: hit.products, hasMore: hit.hasMore } : g;
+      });
+    };
+
+    const prefetchCategoryProducts = async (categories: unknown[]) => {
+      const first = categories.slice(0, 2) as any[];
+      const ids = first.map((c) => c?._id).filter(Boolean).join(',');
+      const slugs = first.map((c) => c?.slug).filter(Boolean).join(',');
+      if (!ids && !slugs) return;
+      const params = new URLSearchParams();
+      if (ids) params.set('categoryIds', ids);
+      if (slugs) params.set('categorySlugs', slugs);
+      const res = await fetch(`/api/home/category-products?${params.toString()}`, { cache: 'no-store' });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || cancelled) return;
+      const incoming = Array.isArray(json?.data) ? (json.data as CategoryGroup[]) : [];
+      setData((prev) => {
+        if (!prev) return prev;
+        const next = {
+          ...prev,
+          categoryProducts: mergeCategoryGroups(prev.categoryProducts, incoming),
+        };
+        setPageCache(CACHE_KEY_HOME, next);
+        return next;
+      });
+    };
+
     fetch('/api/home', { cache: 'no-store' })
       .then(async (res) => {
         if (cancelled) return;
@@ -114,10 +151,17 @@ export default function HomeClient() {
           setLoading(false);
           return;
         }
-        const d = json.data as HomeData;
+        const base = json.data as Omit<HomeData, 'categoryProducts'> & { categories: unknown[] };
+        const categoryProducts: CategoryGroup[] = Array.isArray(base?.categories)
+          ? base.categories.map((category) => ({ category, products: [], hasMore: false }))
+          : [];
+        const d: HomeData = { ...base, categoryProducts };
         setPageCache(CACHE_KEY_HOME, d);
         setData(d);
         setLoading(false);
+        if (Array.isArray(base?.categories) && base.categories.length) {
+          prefetchCategoryProducts(base.categories);
+        }
       })
       .catch((err) => {
         if (cancelled) return;

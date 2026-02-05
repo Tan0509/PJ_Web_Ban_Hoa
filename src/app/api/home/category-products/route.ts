@@ -34,47 +34,44 @@ export async function GET(req: Request) {
       .sort({ order: 1, name: 1 })
       .lean();
 
-    const ids = categories.map((c: any) => c._id?.toString?.()).filter(Boolean);
-    const slugs = categories.map((c: any) => c.slug).filter(Boolean);
+    const categoryProducts = await Promise.all(
+      categories.map(async (category: any) => {
+        const catId = category._id?.toString?.() || '';
+        const catSlug = category.slug || '';
 
-    const allCategoryProducts = await Product.find({
-      active: true,
-      $or: [
-        { categoryIds: { $in: ids } },
-        { categoryId: { $in: ids } },
-        { categorySlug: { $in: slugs } },
-      ],
-    })
-      .select('name price salePrice discountPercent images slug active categoryId categoryIds categorySlug')
-      .sort({ createdAt: -1 })
-      .limit(50)
-      .lean();
-
-    const categoryProducts = categories.map((category: any) => {
-      const catId = category._id?.toString?.() || '';
-      const catSlug = category.slug || '';
-
-      const products = allCategoryProducts
-        .filter((p: any) => {
-          const pCategoryIds = Array.isArray(p.categoryIds) ? p.categoryIds.map((id: unknown) => String(id)) : [];
-          const pCategoryId = p.categoryId ? String(p.categoryId) : '';
-          const pCategorySlug = p.categorySlug || '';
-          return (
-            pCategoryIds.includes(catId) ||
-            pCategoryId === catId ||
-            pCategorySlug === catSlug
-          );
+        const productsRaw = await Product.find({
+          active: true,
+          $or: [
+            ...(catId ? [{ categoryIds: catId }, { categoryId: catId }] : []),
+            ...(catSlug ? [{ categorySlug: catSlug }] : []),
+          ],
         })
-        .slice(0, 9)
-        .map((p: any) => {
-          const { categoryId, categoryIds, categorySlug, ...rest } = p;
-          return rest;
-        });
+          .select('name price salePrice discountPercent images slug active categoryId categoryIds categorySlug')
+          .sort({ createdAt: -1 })
+          .limit(10)
+          .lean();
 
-      return { category, products, hasMore: products.length > 8 };
-    });
+        const hasMore = productsRaw.length > 9;
+        const products = productsRaw
+          .slice(0, 9)
+          .map((p: any) => {
+            const { categoryId, categoryIds, categorySlug, ...rest } = p;
+            return rest;
+          });
 
-    return NextResponse.json({ success: true, data: categoryProducts });
+        return { category, products, hasMore };
+      })
+    );
+
+    return NextResponse.json(
+      { success: true, data: categoryProducts },
+      {
+        headers: {
+          // Cache at the edge to speed up repeated home loads
+          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+        },
+      }
+    );
   } catch (err) {
     return json500(err);
   }

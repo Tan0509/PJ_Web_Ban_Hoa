@@ -64,6 +64,7 @@ ProductSchema.index({ active: 1, categorySlug: 1, soldCount: -1 }); // Category 
 ProductSchema.index({ active: 1, categoryId: 1, createdAt: -1 }); // Category page filter (legacy) + sort
 ProductSchema.index({ active: 1, categoryIds: 1, createdAt: -1 }); // Category page filter (multi-category) + sort - MongoDB auto multikey
 ProductSchema.index({ active: 1, isFeatured: -1, soldCount: -1, createdAt: -1 }); // Home page featured products: filter + sort
+ProductSchema.index({ active: 1, soldCount: -1, createdAt: -1 }); // Home page featured products: sort without isFeatured filter
 ProductSchema.index({ active: 1, createdAt: -1 }); // Home page category products, search page: general sort by newest
 ProductSchema.index({ active: 1, name: 1 }); // Search page: filter by name regex (supports prefix matching)
 
