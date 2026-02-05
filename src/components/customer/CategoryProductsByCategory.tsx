@@ -31,7 +31,7 @@ type Props = {
   items: Group[];
 };
 
-const BATCH_SIZE = 2;
+const BATCH_SIZE = 1;
 
 export default function CategoryProductsByCategory({ items }: Props) {
   const [loaded, setLoaded] = useState<Record<string, { products: Product[]; hasMore: boolean }>>({});
