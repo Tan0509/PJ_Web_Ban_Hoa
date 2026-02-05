@@ -2,18 +2,14 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IHomeCategoryCache extends Document {
   key: string;
-  categoryProducts: Array<{
-    category: any;
-    products: any[];
-    hasMore: boolean;
-  }>;
+  categoryProducts: any;
   updatedAt: Date;
 }
 
 const HomeCategoryCacheSchema = new Schema<IHomeCategoryCache>(
   {
     key: { type: String, required: true, unique: true },
-    categoryProducts: { type: Array, default: [] },
+    categoryProducts: { type: Schema.Types.Mixed, default: [] },
     updatedAt: { type: Date, default: Date.now },
   },
   { collection: 'home_category_cache' }

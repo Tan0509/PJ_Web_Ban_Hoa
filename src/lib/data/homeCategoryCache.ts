@@ -8,7 +8,9 @@ const PREVIEW_LIMIT = 8;
 
 export async function getHomeCategoryCache() {
   await connectMongo();
-  const doc = await HomeCategoryCache.findOne({ key: CACHE_KEY }).lean();
+  const doc = await HomeCategoryCache.findOne({ key: CACHE_KEY }).lean() as
+    | { categoryProducts?: unknown[] }
+    | null;
   return doc?.categoryProducts || [];
 }
 
