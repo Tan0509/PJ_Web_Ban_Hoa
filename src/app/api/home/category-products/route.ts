@@ -12,12 +12,10 @@ export const runtime = 'nodejs';
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
-    const idsParam = searchParams.get('categoryIds') || '';
     const slugsParam = searchParams.get('categorySlugs') || '';
-    const categoryIds = idsParam.split(',').map((s) => s.trim()).filter(Boolean);
     const categorySlugs = slugsParam.split(',').map((s) => s.trim()).filter(Boolean);
 
-    if (!categoryIds.length && !categorySlugs.length) {
+    if (!categorySlugs.length) {
       return NextResponse.json({ message: 'Missing categoryIds or categorySlugs' }, { status: 400 });
     }
 
@@ -26,7 +24,6 @@ export async function GET(req: Request) {
     const categories = await Category.find({
       active: { $ne: false },
       $or: [
-        ...(categoryIds.length ? [{ _id: { $in: categoryIds } }] : []),
         ...(categorySlugs.length ? [{ slug: { $in: categorySlugs } }] : []),
       ].filter(Boolean),
     })
