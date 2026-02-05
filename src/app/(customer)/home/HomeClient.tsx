@@ -157,9 +157,7 @@ export default function HomeClient() {
         setPageCache(CACHE_KEY_HOME, d);
         setData(d);
         setLoading(false);
-        if (Array.isArray(base?.categories) && base.categories.length) {
-          prefetchCategoryProducts(base.categories);
-        }
+        // Preview data already contains categoryProducts for all categories
       })
       .catch((err) => {
         if (cancelled) return;

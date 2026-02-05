@@ -4,6 +4,7 @@ import Poster from '@/models/Poster';
 import Product from '@/models/Product';
 
 const PREVIEW_LIMIT = 8;
+const PREVIEW_CATEGORY_COUNT = 4;
 
 export async function getHomeData() {
   await connectMongo();
@@ -34,10 +35,14 @@ export async function getHomeData() {
   const featuredHasMore = featuredProductsRaw.length > 8;
 
   const categoryProducts = await Promise.all(
-    categories.map(async (category: unknown) => {
+    categories.map(async (category: unknown, idx: number) => {
       const c = category as { slug?: string };
       const catSlug = c.slug || '';
       if (!catSlug) {
+        return { category, products: [], hasMore: false };
+      }
+
+      if (idx >= PREVIEW_CATEGORY_COUNT) {
         return { category, products: [], hasMore: false };
       }
 
