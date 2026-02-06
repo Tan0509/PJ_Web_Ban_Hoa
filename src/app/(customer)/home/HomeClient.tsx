@@ -123,7 +123,7 @@ export default function HomeClient() {
       });
     };
 
-    fetch('/api/home', { cache: 'no-store' })
+    fetch('/api/home')
       .then(async (res) => {
         if (cancelled) return;
         const raw = await res.text();

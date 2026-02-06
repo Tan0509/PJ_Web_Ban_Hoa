@@ -15,5 +15,7 @@ const HomeCategoryCacheSchema = new Schema<IHomeCategoryCache>(
   { collection: 'home_category_cache' }
 );
 
+HomeCategoryCacheSchema.index({ key: 1 });
+
 export default mongoose.models.HomeCategoryCache ||
   mongoose.model<IHomeCategoryCache>('HomeCategoryCache', HomeCategoryCacheSchema);

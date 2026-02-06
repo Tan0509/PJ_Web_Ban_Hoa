@@ -8,21 +8,30 @@ import { getHomeCategoryCache } from '@/lib/data/homeCategoryCache';
 export async function getHomeData() {
   await connectMongo();
 
+  const categoriesPromise = Category.find({ active: { $ne: false } })
+    .select('name slug icon order active')
+    .sort({ order: 1, name: 1 })
+    .lean()
+    .then((r) => r);
+
+  const postersPromise = Poster.find({ active: { $ne: false } })
+    .select('imageUrl link order active')
+    .sort({ order: 1, _id: 1 })
+    .limit(6)
+    .lean()
+    .then((r) => r);
+
+  const featuredPromise = Product.find({ active: true })
+    .select('name price salePrice discountPercent images slug isFeatured soldCount active')
+    .sort({ soldCount: -1, createdAt: -1 })
+    .limit(9)
+    .lean()
+    .then((r) => r);
+
   const [cats, post, featured] = await Promise.all([
-    Category.find({ active: { $ne: false } })
-      .select('name slug icon order active')
-      .sort({ order: 1, name: 1 })
-      .lean(),
-    Poster.find({ active: { $ne: false } })
-      .select('imageUrl link order active')
-      .sort({ order: 1, _id: 1 })
-      .limit(6)
-      .lean(),
-    Product.find({ active: true })
-      .select('name price salePrice discountPercent images slug isFeatured soldCount active')
-      .sort({ soldCount: -1, createdAt: -1 })
-      .limit(9)
-      .lean(),
+    categoriesPromise,
+    postersPromise,
+    featuredPromise,
   ]);
 
   const categories = cats;
