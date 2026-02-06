@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
-import { connectMongo } from '@/lib/mongoose';
-import Category from '@/models/Category';
-import Product from '@/models/Product';
 import { json500 } from '@/lib/helpers/apiResponse';
+import { getHomeCategoryCacheBySlugs } from '@/lib/data/homeCategoryCache';
 
 export const runtime = 'nodejs';
 
@@ -37,46 +35,7 @@ export async function GET(req: Request) {
       );
     }
 
-    await connectMongo();
-
-    const categories = await Category.find({
-      active: { $ne: false },
-      $or: [
-        ...(categorySlugs.length ? [{ slug: { $in: categorySlugs } }] : []),
-      ].filter(Boolean),
-    })
-      .select('name slug icon order active _id')
-      .sort({ order: 1, name: 1 })
-      .lean();
-
-    const categoryProducts = await Promise.all(
-      categories.map(async (category: any) => {
-        const catId = category._id?.toString?.() || '';
-        const catSlug = category.slug || '';
-
-        if (!catSlug) {
-          return { category, products: [], hasMore: false };
-        }
-
-        const productsRaw = await Product.find({
-          active: true,
-          categorySlug: catSlug,
-        })
-          .select('name price salePrice discountPercent images slug active categorySlug')
-          .sort({ createdAt: -1 })
-          .limit(10)
-          .lean();
-
-        const hasMore = productsRaw.length > 8;
-        const products = productsRaw.slice(0, 8).map((p: any) => {
-          const { images, categorySlug, ...rest } = p;
-          const thumb = Array.isArray(images) ? images.slice(0, 1) : images;
-          return { ...rest, images: thumb, categorySlug };
-        });
-
-        return { category, products, hasMore };
-      })
-    );
+    const categoryProducts = await getHomeCategoryCacheBySlugs(categorySlugs);
 
     CACHE.set(cacheKey, { expiresAt: Date.now() + CACHE_TTL_MS, data: categoryProducts });
 

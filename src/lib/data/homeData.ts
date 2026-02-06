@@ -33,9 +33,13 @@ export async function getHomeData() {
   const featuredProducts = featuredProductsRaw.slice(0, 8);
   const featuredHasMore = featuredProductsRaw.length > 8;
 
-  // Temporary fallback to keep /api/home fast & avoid 502.
-  // Category products are loaded via separate API.
-  const categoryProducts: unknown[] = [];
+  let categoryProducts: unknown[] = [];
+  try {
+    categoryProducts = await getHomeCategoryCache();
+  } catch (err) {
+    console.error('[homeData] Failed to load home category cache:', err);
+    categoryProducts = [];
+  }
 
   return {
     categories,
