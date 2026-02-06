@@ -5,7 +5,10 @@ import Category from '@/models/Category';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   await dbConnect();
-  const cats = await Category.find({ active: true }).sort({ order: 1, name: 1 });
+  const cats = await Category.find({ active: true })
+    .select('name slug icon order active')
+    .sort({ order: 1, name: 1 })
+    .lean();
 
   const data = await Promise.all(
     cats.map(async (cat) => {
@@ -13,7 +16,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const products = await Product.find({
         $or: [{ categoryId: cat._id.toString() }, { categoryId: cat.slug }],
         active: true,
-      }).limit(8);
+      })
+        .select('name price salePrice discountPercent images slug categorySlug')
+        .limit(8)
+        .lean();
       return { category: cat, products, total: products.length };
     })
   );

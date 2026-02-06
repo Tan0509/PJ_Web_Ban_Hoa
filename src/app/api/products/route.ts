@@ -9,9 +9,11 @@ export async function GET(req: Request) {
   const limit = Math.min(Number(searchParams.get('limit')) || 50, 200);
   const skip = Number(searchParams.get('skip')) || 0;
   const products = await Product.find({ active: true })
+    .select('name price salePrice discountPercent images slug categorySlug')
     .sort({ createdAt: -1 })
     .skip(skip)
-    .limit(limit);
+    .limit(limit)
+    .lean();
   return NextResponse.json({ success: true, data: products });
 }
 
