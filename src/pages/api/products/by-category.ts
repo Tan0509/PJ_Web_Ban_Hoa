@@ -13,8 +13,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const data = await Promise.all(
     cats.map(async (cat) => {
       // Customer-side: chỉ hiển thị sản phẩm active
+      const catId = (cat as { _id?: unknown })?._id?.toString?.();
+      const catSlug = (cat as { slug?: string })?.slug;
       const products = await Product.find({
-        $or: [{ categoryId: cat._id.toString() }, { categoryId: cat.slug }],
+        $or: [
+          ...(catId ? [{ categoryId: catId }] : []),
+          ...(catSlug ? [{ categoryId: catSlug }] : []),
+        ],
         active: true,
       })
         .select('name price salePrice discountPercent images slug categorySlug')
