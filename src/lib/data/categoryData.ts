@@ -70,7 +70,12 @@ export async function getCategoryPageData(slug: string, searchParams: SearchPara
   const sort = getSort(normalized.sort);
 
   const [products, total, productFiltersDoc] = await Promise.all([
-    Product.find(filters).sort(sort).skip((page - 1) * PAGE_SIZE).limit(PAGE_SIZE).lean(),
+    Product.find(filters)
+      .select('name price salePrice discountPercent images slug active categorySlug')
+      .sort(sort)
+      .skip((page - 1) * PAGE_SIZE)
+      .limit(PAGE_SIZE)
+      .lean(),
     Product.countDocuments(filters),
     AppSetting.findOne({ key: 'singleton' }).select('productFilters').lean(),
   ]);
