@@ -31,7 +31,11 @@ type Props = {
   items: Group[];
 };
 
-const BATCH_SIZE = 1;
+const BATCH_SIZE = 3;
+const RETRY_AFTER_MS = 30_000;
+const REQUESTED_SLUGS = new Set<string>();
+const IN_FLIGHT_SLUGS = new Set<string>();
+const RETRY_AT = new Map<string, number>();
 
 export default function CategoryProductsByCategory({ items }: Props) {
   const [loaded, setLoaded] = useState<Record<string, { products: Product[]; hasMore: boolean }>>({});
@@ -42,11 +46,23 @@ export default function CategoryProductsByCategory({ items }: Props) {
 
   const loadNext = useCallback(async () => {
     if (loading || !hasPending) return;
-    const batch = pending.slice(0, BATCH_SIZE);
+    const now = Date.now();
+    const batch = pending
+      .filter((g) => {
+        const slug = g.category.slug || '';
+        if (!slug) return false;
+        if (REQUESTED_SLUGS.has(slug)) return false;
+        if (IN_FLIGHT_SLUGS.has(slug)) return false;
+        const retryAt = RETRY_AT.get(slug);
+        if (retryAt && retryAt > now) return false;
+        return true;
+      })
+      .slice(0, BATCH_SIZE);
     const slugs = batch.map((g) => g.category.slug).filter(Boolean).join(',');
     if (!slugs) return;
 
     setLoading(true);
+    slugs.split(',').forEach((s) => IN_FLIGHT_SLUGS.add(s));
     try {
       const params = new URLSearchParams();
       if (slugs) params.set('categorySlugs', slugs);
@@ -54,6 +70,8 @@ export default function CategoryProductsByCategory({ items }: Props) {
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
         // Avoid hammering the API on failures
+        const until = Date.now() + RETRY_AFTER_MS;
+        slugs.split(',').forEach((s) => RETRY_AT.set(s, until));
         await new Promise((r) => setTimeout(r, 3000));
         return;
       }
@@ -67,7 +85,9 @@ export default function CategoryProductsByCategory({ items }: Props) {
         });
         return next;
       });
+      slugs.split(',').forEach((s) => REQUESTED_SLUGS.add(s));
     } finally {
+      slugs.split(',').forEach((s) => IN_FLIGHT_SLUGS.delete(s));
       setLoading(false);
     }
   }, [loading, hasPending, pending]);

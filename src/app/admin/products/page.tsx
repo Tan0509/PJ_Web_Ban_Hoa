@@ -218,6 +218,7 @@ export default function AdminProducts() {
       const params = new URLSearchParams();
       params.set('page', String(page));
       params.set('limit', String(pageSize));
+      params.set('lite', '1');
       if (search) params.set('search', search);
       if (status !== 'all') params.set('status', status);
       if (categoryId) params.set('categoryId', categoryId);
@@ -295,38 +296,66 @@ export default function AdminProducts() {
   };
 
   const openEdit = (item: ProductItem) => {
-    setEditing(item);
-    const priceNum = item.price ?? 0;
-    const salePriceNum = item.salePrice ?? 0;
-    const hasStoredInput = item.saleInputType && (item.saleInputValue !== undefined && item.saleInputValue !== null);
-    let saleType: 'amount' | 'percent' = 'amount';
-    let saleValue = '';
-    if (hasStoredInput && (item.saleInputType === 'amount' || item.saleInputType === 'percent')) {
-      saleType = item.saleInputType;
-      saleValue = item.saleInputValue != null ? formatWithDots(String(item.saleInputValue)) : '';
-    } else if (priceNum > 0 && salePriceNum >= 0 && priceNum > salePriceNum) {
-      saleType = 'amount';
-      saleValue = formatWithDots(String(priceNum - salePriceNum));
-    }
-    setForm({
-      name: item.name || '',
-      slug: item.slug || '',
-      price: priceNum ? formatWithDots(String(priceNum)) : '',
-      saleType,
-      saleValue,
-      metaDescription: item.metaDescription || '',
-      description: item.description || '',
-      mainImage: item.images?.[0] || '',
-      galleryUrls: item.images?.slice(1) || [],
-      categoryIds: item.categoryIds || (item.categoryId ? [item.categoryId] : []),
-      colors: (item.colors || []).map(String),
-      flowerTypes: (item.flowerTypes || []).map(String),
-      active: item.active ?? true,
-      note: (item as any).note || '',
-      specialOffers: (item as any).specialOffers || '',
-    });
-    setFieldErrors({});
-    setShowForm(true);
+    const loadAndOpen = async () => {
+      let full = item;
+      const missingDetails =
+        item.metaDescription === undefined ||
+        item.description === undefined ||
+        item.note === undefined ||
+        item.specialOffers === undefined ||
+        item.colors === undefined ||
+        item.flowerTypes === undefined;
+      if (missingDetails) {
+        try {
+          const res = await fetch(`/api/admin/products/${item._id}`, { credentials: 'include' });
+          if (res.ok) {
+            const detail = await res.json().catch(() => null);
+            if (detail && typeof detail === 'object') {
+              full = { ...item, ...detail } as ProductItem;
+            }
+          } else {
+            const body = await res.json().catch(() => ({}));
+            addToast(body?.message || 'Không tải được chi tiết sản phẩm', 'error');
+          }
+        } catch {
+          addToast('Không tải được chi tiết sản phẩm', 'error');
+        }
+      }
+
+      setEditing(full);
+      const priceNum = full.price ?? 0;
+      const salePriceNum = full.salePrice ?? 0;
+      const hasStoredInput = full.saleInputType && (full.saleInputValue !== undefined && full.saleInputValue !== null);
+      let saleType: 'amount' | 'percent' = 'amount';
+      let saleValue = '';
+      if (hasStoredInput && (full.saleInputType === 'amount' || full.saleInputType === 'percent')) {
+        saleType = full.saleInputType;
+        saleValue = full.saleInputValue != null ? formatWithDots(String(full.saleInputValue)) : '';
+      } else if (priceNum > 0 && salePriceNum >= 0 && priceNum > salePriceNum) {
+        saleType = 'amount';
+        saleValue = formatWithDots(String(priceNum - salePriceNum));
+      }
+      setForm({
+        name: full.name || '',
+        slug: full.slug || '',
+        price: priceNum ? formatWithDots(String(priceNum)) : '',
+        saleType,
+        saleValue,
+        metaDescription: full.metaDescription || '',
+        description: full.description || '',
+        mainImage: full.images?.[0] || '',
+        galleryUrls: full.images?.slice(1) || [],
+        categoryIds: full.categoryIds || (full.categoryId ? [full.categoryId] : []),
+        colors: (full.colors || []).map(String),
+        flowerTypes: (full.flowerTypes || []).map(String),
+        active: full.active ?? true,
+        note: (full as any).note || '',
+        specialOffers: (full as any).specialOffers || '',
+      });
+      setFieldErrors({});
+      setShowForm(true);
+    };
+    loadAndOpen();
   };
 
   const closeForm = () => {

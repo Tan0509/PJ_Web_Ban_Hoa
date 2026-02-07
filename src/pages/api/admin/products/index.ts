@@ -80,12 +80,17 @@ export default async function handler(
     }
 
     const total = await Product.countDocuments(filter);
-    const items = await Product.find(filter)
+    const isLite = String(req.query.lite || '') === '1';
+    const baseQuery = Product.find(filter)
       .sort({ createdAt: -1 })
       .skip((pageNum - 1) * limitNum)
-      .limit(limitNum)
-      .select('name slug price salePrice saleInputType saleInputValue images categoryId categoryIds colors flowerTypes active createdAt metaDescription description note specialOffers');
-    // Full fields for edit form: metaDescription, description, note, specialOffers so Sửa hiển thị đúng
+      .limit(limitNum);
+    const items = await (isLite
+      ? baseQuery.select('name slug price salePrice saleInputType saleInputValue images categoryId categoryIds active createdAt').lean()
+      : baseQuery
+          .select('name slug price salePrice saleInputType saleInputValue images categoryId categoryIds colors flowerTypes active createdAt metaDescription description note specialOffers')
+          .lean());
+    // Lite list payload reduces response size; full data still available via /api/admin/products/[id]
 
     const categories = await Category.find({}, 'name slug')
       .sort({ name: 1 })
