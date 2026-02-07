@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import ProductCard from './ProductCard';
 
@@ -33,13 +33,13 @@ type Props = {
 
 const BATCH_SIZE = 3;
 const RETRY_AFTER_MS = 30_000;
-const REQUESTED_SLUGS = new Set<string>();
-const IN_FLIGHT_SLUGS = new Set<string>();
-const RETRY_AT = new Map<string, number>();
 
 export default function CategoryProductsByCategory({ items }: Props) {
   const [loaded, setLoaded] = useState<Record<string, { products: Product[]; hasMore: boolean }>>({});
   const [loading, setLoading] = useState(false);
+  const requestedRef = useRef<Set<string>>(new Set());
+  const inFlightRef = useRef<Set<string>>(new Set());
+  const retryAtRef = useRef<Map<string, number>>(new Map());
 
   const pending = items.filter((g) => g.products.length === 0 && g.category._id && !loaded[String(g.category._id)]);
   const hasPending = pending.length > 0;
@@ -51,9 +51,9 @@ export default function CategoryProductsByCategory({ items }: Props) {
       .filter((g) => {
         const slug = g.category.slug || '';
         if (!slug) return false;
-        if (REQUESTED_SLUGS.has(slug)) return false;
-        if (IN_FLIGHT_SLUGS.has(slug)) return false;
-        const retryAt = RETRY_AT.get(slug);
+        if (requestedRef.current.has(slug)) return false;
+        if (inFlightRef.current.has(slug)) return false;
+        const retryAt = retryAtRef.current.get(slug);
         if (retryAt && retryAt > now) return false;
         return true;
       })
@@ -62,7 +62,10 @@ export default function CategoryProductsByCategory({ items }: Props) {
     if (!slugs) return;
 
     setLoading(true);
-    slugs.split(',').forEach((s) => IN_FLIGHT_SLUGS.add(s));
+    slugs.split(',').forEach((s) => {
+      inFlightRef.current.add(s);
+      requestedRef.current.add(s);
+    });
     try {
       const params = new URLSearchParams();
       if (slugs) params.set('categorySlugs', slugs);
@@ -71,7 +74,7 @@ export default function CategoryProductsByCategory({ items }: Props) {
       if (!res.ok) {
         // Avoid hammering the API on failures
         const until = Date.now() + RETRY_AFTER_MS;
-        slugs.split(',').forEach((s) => RETRY_AT.set(s, until));
+        slugs.split(',').forEach((s) => retryAtRef.current.set(s, until));
         await new Promise((r) => setTimeout(r, 3000));
         return;
       }
@@ -85,9 +88,8 @@ export default function CategoryProductsByCategory({ items }: Props) {
         });
         return next;
       });
-      slugs.split(',').forEach((s) => REQUESTED_SLUGS.add(s));
     } finally {
-      slugs.split(',').forEach((s) => IN_FLIGHT_SLUGS.delete(s));
+      slugs.split(',').forEach((s) => inFlightRef.current.delete(s));
       setLoading(false);
     }
   }, [loading, hasPending, pending]);
