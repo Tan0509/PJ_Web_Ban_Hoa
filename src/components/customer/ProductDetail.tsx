@@ -86,9 +86,9 @@ export default function ProductDetail({ product, related }: { product: Product; 
   };
 
   return (
-    <div className="container-section py-10 md:py-12 lg:py-16 space-y-12">
+    <div className="container-section py-8 sm:py-10 md:py-12 lg:py-16 space-y-10 sm:space-y-12">
       {/* Main Product Section: Image + Info */}
-      <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
+      <div className="grid lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12">
         {/* 1. Product Image Gallery (Left Column) */}
         <div className="space-y-4">
           {/* Main Image */}
@@ -121,7 +121,7 @@ export default function ProductDetail({ product, related }: { product: Product; 
 
           {/* Thumbnail Gallery */}
           {gallery.filter(Boolean).length > 1 && (
-            <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
               {gallery.map((img, idx) => (
                 <button
                   type="button"

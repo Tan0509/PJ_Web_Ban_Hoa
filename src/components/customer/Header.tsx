@@ -40,7 +40,7 @@ export default function CustomerHeader({ categories }: Props) {
               alt="Tiệm hoa tươi Mỹ Na"
               width={260}
               height={90}
-              className="h-20 md:h-24 w-auto object-contain"
+              className="h-14 sm:h-16 md:h-24 w-auto object-contain"
               priority
             />
           </Link>
@@ -59,7 +59,7 @@ export default function CustomerHeader({ categories }: Props) {
             <button
               type="button"
               onClick={handleSearch}
-              className="bg-[#0f5c5c] text-white px-4 md:px-5 py-2 font-semibold rounded-r-md"
+              className="bg-[#0f5c5c] text-white px-4 md:px-5 py-2 font-semibold rounded-r-md whitespace-nowrap"
             >
               TÌM KIẾM
             </button>

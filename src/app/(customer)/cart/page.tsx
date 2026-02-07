@@ -25,7 +25,7 @@ export default function CartPage() {
         <div className="space-y-4">
           <div className="rounded-lg border border-gray-200 bg-white divide-y">
             {cart.map((item) => (
-              <div key={item.product._id || item.product.slug || item.product.name} className="flex items-center justify-between gap-4 p-4">
+              <div key={item.product._id || item.product.slug || item.product.name} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4">
                 <div className="flex items-center gap-3">
                   <div className="h-16 w-16 rounded-md bg-gray-100 overflow-hidden">
                     {item.product.images?.[0] ? (
@@ -64,7 +64,7 @@ export default function CartPage() {
                     </div>
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="text-left sm:text-right">
                   <div className="text-base font-semibold text-gray-900">
                     {((item.product.salePrice ?? item.product.price ?? 0) * item.quantity).toLocaleString('vi-VN')} VNĐ
                   </div>

@@ -110,12 +110,12 @@ export default function CategoryClient({ slug }: { slug: string }) {
     return (
       <div className={`bg-white ${styles.categoryPage}`}>
         <section className="container-section pt-6 pb-10">
-          <div className="grid lg:grid-cols-[280px,1fr] gap-8">
+          <div className="grid lg:grid-cols-[280px,1fr] gap-6 lg:gap-8">
             <aside className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
               <div className="h-7 w-32 rounded skeleton-shimmer mb-2" />
               <div className="h-4 w-24 rounded skeleton-shimmer" />
             </aside>
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5 lg:gap-6">
               {[1, 2, 3, 4, 5, 6].map((i) => (
                 <div key={i} className="space-y-3">
                   <div className="aspect-[3/4] rounded-xl skeleton-shimmer" />
@@ -164,10 +164,10 @@ export default function CategoryClient({ slug }: { slug: string }) {
             </div>
 
             {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2 pt-4">
+              <div className="flex flex-wrap items-center justify-center gap-2 pt-4">
                 <a
                   href={page > 1 ? buildPageLink(currentPath, norm, page - 1) : '#'}
-                  className={`px-3 py-2 rounded-md border text-sm ${
+                  className={`px-3 py-2 rounded-md border text-xs sm:text-sm ${
                     page > 1 ? 'bg-white text-gray-700 hover:bg-gray-50' : 'bg-gray-50 text-gray-400 cursor-not-allowed'
                   }`}
                   aria-disabled={page <= 1}
@@ -181,7 +181,7 @@ export default function CategoryClient({ slug }: { slug: string }) {
                     <a
                       key={p}
                       href={buildPageLink(currentPath, norm, p)}
-                      className={`px-3 py-2 rounded-md border text-sm ${
+                      className={`px-3 py-2 rounded-md border text-xs sm:text-sm ${
                         active ? 'bg-[#0f5c5c] text-white border-[#0f5c5c]' : 'bg-white text-gray-700 hover:bg-gray-50'
                       }`}
                     >
@@ -191,7 +191,7 @@ export default function CategoryClient({ slug }: { slug: string }) {
                 })}
                 <a
                   href={page < totalPages ? buildPageLink(currentPath, norm, page + 1) : '#'}
-                  className={`px-3 py-2 rounded-md border text-sm ${
+                  className={`px-3 py-2 rounded-md border text-xs sm:text-sm ${
                     page < totalPages ? 'bg-white text-gray-700 hover:bg-gray-50' : 'bg-gray-50 text-gray-400 cursor-not-allowed'
                   }`}
                   aria-disabled={page >= totalPages}
