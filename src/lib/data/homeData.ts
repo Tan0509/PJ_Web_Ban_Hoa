@@ -3,8 +3,6 @@ import Category from '@/models/Category';
 import Poster from '@/models/Poster';
 import Product from '@/models/Product';
 
-import { getHomeCategoryCache } from '@/lib/data/homeCategoryCache';
-
 export async function getHomeData() {
   await connectMongo();
 
@@ -42,13 +40,7 @@ export async function getHomeData() {
   const featuredProducts = featuredProductsRaw.slice(0, 8);
   const featuredHasMore = featuredProductsRaw.length > 8;
 
-  let categoryProducts: unknown[] = [];
-  try {
-    categoryProducts = await getHomeCategoryCache();
-  } catch (err) {
-    console.error('[homeData] Failed to load home category cache:', err);
-    categoryProducts = [];
-  }
+  const categoryProducts: unknown[] = [];
 
   return {
     categories,

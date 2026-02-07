@@ -1,7 +1,11 @@
 import { connectMongo } from '@/lib/mongoose';
 import HomeCategoryCache from '@/models/HomeCategoryCache';
+import Category from '@/models/Category';
+import Product from '@/models/Product';
 
-const CACHE_KEY = 'home-category-preview';
+const CACHE_KEY_PREFIX = 'home-category-preview:';
+
+const toKey = (slug: string) => `${CACHE_KEY_PREFIX}${slug}`;
 
 type PreviewProduct = {
   _id?: unknown;
@@ -46,21 +50,75 @@ function toPreviewGroup(input: any) {
 
 export async function getHomeCategoryCache() {
   await connectMongo();
-  const doc = await HomeCategoryCache.findOne({ key: CACHE_KEY }).lean() as
-    | { categoryProducts?: unknown[] }
-    | null;
-  const raw = doc?.categoryProducts || [];
-  if (!Array.isArray(raw)) return [];
-  return raw.map(toPreviewGroup).filter(Boolean);
+  const docs = await HomeCategoryCache.find({
+    key: { $regex: `^${CACHE_KEY_PREFIX}` },
+  })
+    .select('categoryProducts')
+    .lean();
+  const merged: unknown[] = [];
+  docs.forEach((d: any) => {
+    const raw = d?.categoryProducts;
+    if (raw && typeof raw === 'object') merged.push(raw);
+  });
+  return merged.map(toPreviewGroup).filter(Boolean);
+}
+
+async function buildCacheForSlug(slug: string) {
+  const category = await Category.findOne({ slug, active: { $ne: false } })
+    .select('name slug icon')
+    .lean();
+  if (!category) return null;
+
+  const products = await Product.find({ active: true, categorySlug: slug })
+    .select('name price salePrice discountPercent images slug categorySlug createdAt')
+    .sort({ createdAt: -1 })
+    .limit(9)
+    .lean();
+
+  const hasMore = products.length > 8;
+  const group = {
+    category: {
+      _id: category._id,
+      name: category.name,
+      slug: category.slug,
+      icon: category.icon,
+    },
+    products: products.slice(0, 8).map(toPreviewProduct),
+    hasMore,
+  };
+
+  await HomeCategoryCache.updateOne(
+    { key: toKey(slug) },
+    { $set: { key: toKey(slug), categoryProducts: group, updatedAt: new Date() } },
+    { upsert: true }
+  );
+
+  return group;
 }
 
 export async function getHomeCategoryCacheBySlugs(slugs: string[]) {
   if (!slugs.length) return [];
-  const all = await getHomeCategoryCache();
-  if (!Array.isArray(all)) return [];
-  const wanted = new Set(slugs);
-  return all.filter((g: any) => {
-    const slug = g?.category?.slug;
-    return slug && wanted.has(slug);
+  await connectMongo();
+  const keys = slugs.map(toKey);
+  const docs = await HomeCategoryCache.find({ key: { $in: keys } })
+    .select('key categoryProducts')
+    .lean();
+
+  const map = new Map<string, any>();
+  docs.forEach((d: any) => {
+    const key = String(d?.key || '');
+    const slug = key.startsWith(CACHE_KEY_PREFIX) ? key.slice(CACHE_KEY_PREFIX.length) : '';
+    if (slug) map.set(slug, toPreviewGroup(d?.categoryProducts));
   });
+
+  const missing = slugs.filter((s) => !map.has(s));
+  if (missing.length) {
+    const built = await Promise.all(missing.map((s) => buildCacheForSlug(s)));
+    missing.forEach((s, idx) => {
+      const g = built[idx];
+      if (g) map.set(s, g);
+    });
+  }
+
+  return slugs.map((s) => map.get(s)).filter(Boolean);
 }
