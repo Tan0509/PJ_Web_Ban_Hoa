@@ -115,6 +115,36 @@ a:active {
   }
 }
 
+@keyframes modalImageIn {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes modalThumbIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-image-enter {
+  animation: modalImageIn 180ms ease-out;
+}
+
+.modal-thumb-enter {
+  animation: modalThumbIn 200ms ease-out;
+}
+
 /* Customer dark mode toggle – vòng tròn icon (cùng cấu trúc như Yêu thích, Giỏ hàng) */
 .customer-theme-circle {
   color: #374151;

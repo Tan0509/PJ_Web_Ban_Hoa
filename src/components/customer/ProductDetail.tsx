@@ -40,6 +40,7 @@ export default function ProductDetail({ product, related }: { product: Product; 
   const [note, setNote] = useState('');
   const [showImageModal, setShowImageModal] = useState(false);
   const [modalImage, setModalImage] = useState('');
+  const [modalIndex, setModalIndex] = useState(0);
   const [mounted, setMounted] = useState(false);
 
   const isFavorite = useMemo(() => {
@@ -59,6 +60,7 @@ export default function ProductDetail({ product, related }: { product: Product; 
     : null;
 
   const gallery = product.images?.length ? product.images : [activeImg || ''];
+  const safeGallery = gallery.filter(Boolean);
 
   useEffect(() => {
     setMounted(true);
@@ -70,19 +72,40 @@ export default function ProductDetail({ product, related }: { product: Product; 
   };
 
   const handleMainImageClick = () => {
-    if (activeImg) {
-      setModalImage(activeImg);
-      setShowImageModal(true);
-    }
+    if (!safeGallery.length) return;
+    const idx = Math.max(0, safeGallery.findIndex((img) => img === activeImg));
+    setModalIndex(idx >= 0 ? idx : 0);
+    setModalImage(safeGallery[idx >= 0 ? idx : 0]);
+    setShowImageModal(true);
   };
 
   const handleCloseModal = () => {
     setShowImageModal(false);
     setModalImage('');
+    setModalIndex(0);
   };
 
   const handleThumbnailClick = (img: string) => {
     setActiveImg(img);
+  };
+
+  const handleModalSelect = (idx: number) => {
+    const next = safeGallery[idx];
+    if (!next) return;
+    setModalIndex(idx);
+    setModalImage(next);
+  };
+
+  const handleModalPrev = () => {
+    if (!safeGallery.length) return;
+    const nextIdx = (modalIndex - 1 + safeGallery.length) % safeGallery.length;
+    handleModalSelect(nextIdx);
+  };
+
+  const handleModalNext = () => {
+    if (!safeGallery.length) return;
+    const nextIdx = (modalIndex + 1) % safeGallery.length;
+    handleModalSelect(nextIdx);
   };
 
   return (
@@ -323,17 +346,64 @@ export default function ProductDetail({ product, related }: { product: Product; 
               onClick={handleCloseModal}
             >
               <div className="relative max-w-[90vw] max-h-[90vh] flex items-center justify-center">
-                <div className="relative w-full h-[90vh] max-w-[90vw]">
-                  <Image
-                    src={getOptimizedImageUrl(modalImage, { width: 1200 })}
+                <div className="relative w-full h-[90vh] max-w-[90vw] flex items-center justify-center">
+                  <img
+                    src={modalImage}
                     alt={product.name}
-                    fill
-                    sizes="90vw"
-                    className="object-contain rounded-lg shadow-2xl"
+                    className="max-h-[90vh] max-w-[90vw] object-contain rounded-lg shadow-2xl modal-image-enter"
                     onClick={(e) => e.stopPropagation()}
-                    unoptimized
+                    loading="eager"
                   />
                 </div>
+                {safeGallery.length > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleModalPrev();
+                      }}
+                      className="absolute left-3 md:left-6 top-1/2 -translate-y-1/2 h-12 w-12 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white flex items-center justify-center transition-colors active:scale-95"
+                      aria-label="Ảnh trước"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleModalNext();
+                      }}
+                      className="absolute right-3 md:right-6 top-1/2 -translate-y-1/2 h-12 w-12 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white flex items-center justify-center transition-colors active:scale-95"
+                      aria-label="Ảnh sau"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  </>
+                )}
+                {safeGallery.length > 1 && (
+                  <div
+                    className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-black/40 backdrop-blur-sm rounded-xl px-3 py-2 flex gap-2"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {safeGallery.map((img, idx) => (
+                      <button
+                        type="button"
+                        key={`${img}-${idx}`}
+                        onClick={() => handleModalSelect(idx)}
+                        className={`relative h-12 w-12 rounded-md overflow-hidden border-2 transition modal-thumb-enter ${
+                          idx === modalIndex ? 'border-white shadow-md scale-105' : 'border-white/30 hover:border-white/70'
+                        }`}
+                      >
+                        <img src={img} alt={`${product.name}-${idx}`} className="h-full w-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <button
                   type="button"
                   onClick={handleCloseModal}
