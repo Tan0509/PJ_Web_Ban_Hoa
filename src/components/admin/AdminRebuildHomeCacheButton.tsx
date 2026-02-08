@@ -8,6 +8,7 @@ type ResultState = {
   message: string;
   count?: number;
   slugs?: string[];
+  report?: any;
 };
 
 export default function AdminRebuildHomeCacheButton() {
@@ -28,12 +29,14 @@ export default function AdminRebuildHomeCacheButton() {
       }
       const count = data?.data?.count ?? 0;
       const slugs = Array.isArray(data?.data?.slugs) ? data.data.slugs : [];
+      const report = data?.data?.report;
       setResult({
         open: true,
         ok: true,
         message: `Đã rebuild cache thành công.`,
         count,
         slugs,
+        report,
       });
     } catch {
       setResult({ open: true, ok: false, message: 'Không thể rebuild cache' });
@@ -114,6 +117,51 @@ export default function AdminRebuildHomeCacheButton() {
               {result.ok && result.slugs && result.slugs.length > 0 && (
                 <div className="text-xs text-gray-500">
                   Slugs: {result.slugs.join(', ')}
+                </div>
+              )}
+              {result.ok && result.report && (
+                <div className="text-xs text-gray-500 space-y-2">
+                  {Array.isArray(result.report.categoriesAdded) && result.report.categoriesAdded.length > 0 && (
+                    <div>
+                      Danh mục mới: {result.report.categoriesAdded.map((c: any) => c?.name || c?.slug).join(', ')}
+                    </div>
+                  )}
+                  {Array.isArray(result.report.categoriesRemoved) && result.report.categoriesRemoved.length > 0 && (
+                    <div>
+                      Danh mục bị ẩn/xoá: {result.report.categoriesRemoved.map((c: any) => c?.name || c?.slug).join(', ')}
+                    </div>
+                  )}
+                  {Array.isArray(result.report.postersAdded) && result.report.postersAdded.length > 0 && (
+                    <div>
+                      Poster mới: {result.report.postersAdded.map((p: any) => p?.name || p?._id).join(', ')}
+                    </div>
+                  )}
+                  {Array.isArray(result.report.postersRemoved) && result.report.postersRemoved.length > 0 && (
+                    <div>
+                      Poster bị ẩn/xoá: {result.report.postersRemoved.map((p: any) => p?.name || p?._id).join(', ')}
+                    </div>
+                  )}
+                  {Array.isArray(result.report.productsAddedByCategory) && result.report.productsAddedByCategory.length > 0 && (
+                    <div className="space-y-1">
+                      <div>Sản phẩm mới trong danh mục (cache home):</div>
+                      {result.report.productsAddedByCategory.map((g: any) => (
+                        <div key={`add-${g.slug}`}>
+                          - {g.slug}: {(g.products || []).map((p: any) => p?.name || p?.slug || p?._id).join(', ')}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {Array.isArray(result.report.productsRemovedByCategory) && result.report.productsRemovedByCategory.length > 0 && (
+                    <div className="space-y-1">
+                      <div>Sản phẩm bị ẩn/xoá khỏi danh mục (cache home):</div>
+                      {result.report.productsRemovedByCategory.map((g: any) => (
+                        <div key={`rm-${g.slug}`}>
+                          - {g.slug}: {(g.products || []).map((p: any) => p?.name || p?.slug || p?._id).join(', ')}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {result.report.note ? <div>{result.report.note}</div> : null}
                 </div>
               )}
             </div>
