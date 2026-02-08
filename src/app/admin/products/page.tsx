@@ -250,7 +250,7 @@ export default function AdminProducts() {
   useEffect(() => {
     const loadFilters = async () => {
       try {
-        const res = await fetch('/api/admin/settings/product-filters');
+        const res = await fetch('/api/admin/settings/product-filters', { credentials: 'include' });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) return;
         const filters = data?.filters || {};
