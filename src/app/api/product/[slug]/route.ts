@@ -35,18 +35,27 @@ export async function GET(
 
     const productId = (product as any)._id?.toString?.();
     const categorySlug = (product as any).categorySlug;
+    const categorySlugs = (product as any).categorySlugs || [];
     const categoryId = (product as any).categoryId;
     const categoryIds = (product as any).categoryIds || [];
 
-    const related = await Product.find({
+    const relatedFilters: any[] = [];
+    if (categorySlug) relatedFilters.push({ categorySlug });
+    if (Array.isArray(categorySlugs) && categorySlugs.length) {
+      relatedFilters.push({ categorySlugs: { $in: categorySlugs } });
+    }
+    if (categoryId) relatedFilters.push({ categoryId });
+    if (Array.isArray(categoryIds) && categoryIds.length) {
+      relatedFilters.push({ categoryIds: { $in: categoryIds } });
+    }
+
+    const relatedQuery: any = {
       _id: { $ne: productId },
       active: true,
-      $or: [
-        { categorySlug },
-        { categoryId },
-        ...(Array.isArray(categoryIds) ? categoryIds.map((id: string) => ({ categoryIds: id })) : []),
-      ].filter(Boolean),
-    })
+    };
+    if (relatedFilters.length) relatedQuery.$or = relatedFilters;
+
+    const related = await Product.find(relatedQuery)
       .sort({ createdAt: -1 })
       .limit(8)
       .lean();

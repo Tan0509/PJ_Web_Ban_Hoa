@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '@/lib/mongodb';
 import Product from '@/models/Product';
 import type { IProduct } from '@/models/Product';
+import Category from '@/models/Category';
 import AppSetting from '@/models/AppSetting';
 import { isAdminFromSession } from '@/lib/authHelpers';
 import { getPublicIdFromUrl, deleteFromCloudinary } from '@/lib/cloudinary';
@@ -29,6 +30,17 @@ export const config = {
 function sanitizeList(v: any) {
   const list = Array.isArray(v) ? v : [];
   return Array.from(new Set(list.map((x) => String(x || '').trim()).filter(Boolean)));
+}
+
+async function resolveCategorySlugs(categoryIds: string[]) {
+  if (!categoryIds.length) return [];
+  const categories = await Category.find({ _id: { $in: categoryIds } })
+    .select('slug')
+    .lean();
+  const slugById = new Map(categories.map((c: any) => [String(c?._id), String(c?.slug || '')]));
+  return categoryIds
+    .map((id) => slugById.get(String(id)))
+    .filter((s): s is string => Boolean(s));
 }
 
 async function getFilterOptions() {
@@ -143,6 +155,10 @@ export default async function handler(
       note: note?.trim() || undefined,
       specialOffers: specialOffers?.trim() || undefined,
     };
+
+    const categorySlugs = await resolveCategorySlugs(finalCategoryIds);
+    payload.categorySlugs = categorySlugs;
+    payload.categorySlug = categorySlugs[0];
 
     const updated = await Product.findByIdAndUpdate(id, payload, { new: true });
     if (!updated) return res.status(404).json({ message: 'Not found' });

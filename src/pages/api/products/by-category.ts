@@ -17,8 +17,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const catSlug = (cat as { slug?: string })?.slug;
       const products = await Product.find({
         $or: [
-          ...(catId ? [{ categoryId: catId }] : []),
-          ...(catSlug ? [{ categoryId: catSlug }] : []),
+          ...(catId ? [{ categoryId: catId }, { categoryIds: catId }] : []),
+          ...(catSlug ? [{ categorySlug: catSlug }, { categorySlugs: catSlug }] : []),
         ],
         active: true,
       })

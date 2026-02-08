@@ -16,9 +16,18 @@ export type SearchParams = {
 const PAGE_SIZE = 24;
 
 function buildFilters(slug: string, searchParams: SearchParams, categoryId: string) {
+  const orFilters: any[] = [
+    { categorySlug: slug },
+    { categorySlugs: slug },
+  ];
+  if (categoryId) {
+    orFilters.push({ categoryId });
+    orFilters.push({ categoryIds: categoryId });
+  }
+
   const filters: any = {
     active: true,
-    categorySlug: slug,
+    $or: orFilters,
   };
 
   const minPrice = Number(searchParams.minPrice);

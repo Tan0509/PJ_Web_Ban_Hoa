@@ -62,7 +62,7 @@ export async function GET(req: Request) {
     const productId = agg[0].productId;
     const [product, orderCount, totalOrders] = await Promise.all([
       Product.findById(productId)
-        .select('name categorySlug categoryId categoryIds')
+        .select('name categorySlug categorySlugs categoryId categoryIds')
         .lean(),
       Order.countDocuments({
         createdAt: { $gte: start, $lte: end },
@@ -82,7 +82,7 @@ export async function GET(req: Request) {
     }
 
     let categoryName = '—';
-    const catSlug = productDoc.categorySlug;
+    const catSlug = productDoc.categorySlug || productDoc.categorySlugs?.[0];
     const catId = productDoc.categoryId || productDoc.categoryIds?.[0];
     if (catSlug) {
       const cat = await Category.findOne({ slug: catSlug }).select('name').lean();

@@ -69,7 +69,10 @@ async function buildCacheForSlug(slug: string) {
     .lean() as { _id?: unknown; name?: string; slug?: string; icon?: string } | null;
   if (!category) return null;
 
-  const products = await Product.find({ active: true, categorySlug: slug })
+  const products = await Product.find({
+    active: true,
+    $or: [{ categorySlug: slug }, { categorySlugs: slug }],
+  })
     .select('name price salePrice discountPercent images slug categorySlug createdAt')
     .sort({ createdAt: -1 })
     .limit(9)

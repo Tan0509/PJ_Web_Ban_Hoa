@@ -11,6 +11,7 @@ export interface IProduct extends Document {
   categoryId?: string; // legacy
   categoryIds?: string[]; // nhiều danh mục
   categorySlug?: string;
+  categorySlugs?: string[];
   colors?: string[];
   flowerTypes?: string[];
   stock: number;
@@ -38,6 +39,7 @@ const ProductSchema = new Schema<IProduct>(
     categoryId: { type: String },
     categoryIds: [{ type: String }],
     categorySlug: { type: String },
+    categorySlugs: [{ type: String }],
     colors: [{ type: String }],
     flowerTypes: [{ type: String }],
     stock: { type: Number, default: 0 },
@@ -59,6 +61,7 @@ const ProductSchema = new Schema<IProduct>(
 // Compound indexes with 'active' first for efficient filtering
 ProductSchema.index({ active: 1, slug: 1 }); // Product detail page: findOne({ slug, active: true })
 ProductSchema.index({ active: 1, categorySlug: 1, createdAt: -1 }); // Category page: filter by categorySlug + sort by createdAt (newest)
+ProductSchema.index({ active: 1, categorySlugs: 1, createdAt: -1 }); // Category page: multi-category slugs
 ProductSchema.index({ active: 1, categorySlug: 1, salePrice: 1, price: 1 }); // Category page: filter by categorySlug + sort by price (asc/desc)
 ProductSchema.index({ active: 1, categorySlug: 1, soldCount: -1 }); // Category page: filter by categorySlug + sort by soldCount (popular)
 ProductSchema.index({ active: 1, categoryId: 1, createdAt: -1 }); // Category page filter (legacy) + sort
