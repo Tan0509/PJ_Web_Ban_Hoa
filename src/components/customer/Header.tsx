@@ -32,18 +32,20 @@ export default function CustomerHeader({ categories }: Props) {
 
   return (
     <header className="bg-white shadow-sm">
-      <div className="container-section py-3 sm:py-4 flex flex-col gap-3 sm:gap-4">
+      <div className="container-section pt-8 pb-4 sm:py-4 flex flex-col gap-3 sm:gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3 md:gap-5">
-          <Link href="/" className="shrink-0 w-full flex justify-center sm:w-auto sm:justify-start">
-            <Image
-              src="/images/logo.png"
-              alt="Tiệm hoa tươi Mỹ Na"
-              width={260}
-              height={90}
-              className="h-12 sm:h-16 md:h-24 w-auto object-contain"
-              priority
-            />
-          </Link>
+          <div className="w-full flex justify-center pt-7 pb-0 sm:w-auto sm:pt-0 sm:pb-0">
+            <Link href="/" className="shrink-0 w-full flex justify-center sm:w-auto sm:justify-start">
+              <Image
+                src="/images/logo.png"
+                alt="Tiệm hoa tươi Mỹ Na"
+                width={260}
+                height={90}
+                className="h-32 sm:h-16 md:h-24 w-auto object-contain"
+                priority
+              />
+            </Link>
+          </div>
 
           <div className="w-full md:flex-1 md:max-w-[620px] flex flex-col sm:flex-row items-stretch gap-2 sm:gap-0">
             <input
@@ -114,7 +116,7 @@ export default function CustomerHeader({ categories }: Props) {
           <button
             type="button"
             onClick={() => setMobileOpen((v) => !v)}
-            className="sm:hidden inline-flex items-center justify-center h-10 w-10 rounded-md border border-gray-300 text-gray-700 mb-3"
+            className="sm:hidden inline-flex items-center justify-center h-10 w-full rounded-md border border-gray-300 text-gray-700 mb-2 -mt-1 transition-all duration-200 hover:bg-gray-50 active:scale-[0.98]"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6h16M4 12h16M4 18h16" />
@@ -130,7 +132,7 @@ export default function CustomerHeader({ categories }: Props) {
       </div>
 
       {mobileOpen && (
-        <div className="sm:hidden bg-[#0f5c5c] text-white">
+        <div className="sm:hidden bg-[#0f5c5c] text-white animate-[slideDown_220ms_ease-out]">
           <div className="container-section py-5 px-4 flex flex-col gap-4">
             <div className="px-2 mt-6 mb-1">
               <div className="rounded-xl bg-white/15 border border-white/15 divide-y divide-white/10 overflow-hidden shadow-sm">

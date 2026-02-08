@@ -76,10 +76,43 @@ a {
   text-decoration: none;
 }
 
+/* Global tap/click feedback for links & buttons (PC + mobile) */
+button,
+a {
+  transition: transform 150ms ease, background-color 150ms ease, opacity 150ms ease;
+}
+
+button:active,
+a:active {
+  transform: scale(0.98);
+}
+
 .container-section {
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 16px;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes menuItemIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Customer dark mode toggle – vòng tròn icon (cùng cấu trúc như Yêu thích, Giỏ hàng) */
