@@ -6,34 +6,6 @@ import { useRouter } from 'next/navigation';
 const NOTIFICATION_SOUND_KEY = 'admin_notification_sound_enabled';
 const NOTIFICATION_VOLUME_KEY = 'admin_notification_sound_volume';
 
-function playDing() {
-  if (typeof window === 'undefined') return;
-  try {
-    const enabled = localStorage.getItem(NOTIFICATION_SOUND_KEY);
-    if (enabled !== 'true') return;
-    const volStr = localStorage.getItem(NOTIFICATION_VOLUME_KEY);
-    const vol = volStr !== null ? Math.max(0, Math.min(1, parseInt(volStr, 10) / 100)) : 0.7;
-    if (vol <= 0) return;
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const playTone = (freq: number, start: number, duration: number) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.frequency.value = freq;
-      osc.type = 'sine';
-      gain.gain.setValueAtTime(vol, start);
-      gain.gain.exponentialRampToValueAtTime(0.01, start + duration);
-      osc.start(start);
-      osc.stop(start + duration);
-    };
-    playTone(800, 0, 0.08);
-    playTone(1000, 0.1, 0.12);
-  } catch {
-    // ignore
-  }
-}
-
 type AdminNotif = {
   _id: string;
   type: string;
@@ -61,6 +33,38 @@ export default function AdminNotificationBell() {
   const panelRef = useRef<HTMLDivElement | null>(null);
   const didMarkAllRef = useRef(false);
   const prevUnreadRef = useRef<number | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const audioReadyRef = useRef(false);
+
+  const playDing = () => {
+    if (typeof window === 'undefined') return;
+    if (!audioReadyRef.current) return;
+    try {
+      const enabled = localStorage.getItem(NOTIFICATION_SOUND_KEY);
+      if (enabled !== 'true') return;
+      const volStr = localStorage.getItem(NOTIFICATION_VOLUME_KEY);
+      const vol = volStr !== null ? Math.max(0, Math.min(1, parseInt(volStr, 10) / 100)) : 0.7;
+      if (vol <= 0) return;
+      const ctx = audioCtxRef.current;
+      if (!ctx) return;
+      const playTone = (freq: number, start: number, duration: number) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = freq;
+        osc.type = 'sine';
+        gain.gain.setValueAtTime(vol, start);
+        gain.gain.exponentialRampToValueAtTime(0.01, start + duration);
+        osc.start(ctx.currentTime + start);
+        osc.stop(ctx.currentTime + start + duration);
+      };
+      playTone(800, 0, 0.08);
+      playTone(1000, 0.1, 0.12);
+    } catch {
+      // ignore
+    }
+  };
 
   const hasUnread = unreadCount > 0;
 
@@ -109,9 +113,26 @@ export default function AdminNotificationBell() {
   };
 
   useEffect(() => {
+    const unlockAudio = async () => {
+      if (audioReadyRef.current) return;
+      try {
+        const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        if (ctx.state === 'suspended') {
+          await ctx.resume();
+        }
+        audioCtxRef.current = ctx;
+        audioReadyRef.current = true;
+      } catch {
+        // ignore
+      }
+    };
+    window.addEventListener('pointerdown', unlockAudio, { passive: true, once: true });
+    window.addEventListener('keydown', unlockAudio, { passive: true, once: true });
     load(true);
     const t = setInterval(() => load(true), 15000);
-    return () => clearInterval(t);
+    return () => {
+      clearInterval(t);
+    };
   }, []);
 
   useEffect(() => {
@@ -202,4 +223,3 @@ export default function AdminNotificationBell() {
     </div>
   );
 }
-
