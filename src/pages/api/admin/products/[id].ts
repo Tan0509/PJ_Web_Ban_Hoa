@@ -65,7 +65,7 @@ export default async function handler(
 
   if (req.method === 'GET') {
     const product = await Product.findById(id)
-      .select('name slug price salePrice images description metaDescription note specialOffers')
+      .select('name slug price salePrice saleInputType saleInputValue images description metaDescription note specialOffers colors flowerTypes categoryId categoryIds active')
       .lean();
     if (!product) return res.status(404).json({ message: 'Not found' });
     return res.status(200).json(product);
