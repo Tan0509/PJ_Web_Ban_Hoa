@@ -66,7 +66,7 @@ export async function getHomeCategoryCache() {
 async function buildCacheForSlug(slug: string) {
   const category = await Category.findOne({ slug, active: { $ne: false } })
     .select('name slug icon')
-    .lean();
+    .lean() as { _id?: unknown; name?: string; slug?: string; icon?: string } | null;
   if (!category) return null;
 
   const products = await Product.find({ active: true, categorySlug: slug })
@@ -78,7 +78,7 @@ async function buildCacheForSlug(slug: string) {
   const hasMore = products.length > 8;
   const group = {
     category: {
-      _id: category._id,
+      _id: (category as any)._id,
       name: category.name,
       slug: category.slug,
       icon: category.icon,
