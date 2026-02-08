@@ -82,17 +82,17 @@ export default function CategoryMenu({ variant = 'desktop', categories: categori
 
   if (variant === 'mobile') {
     return (
-      <>
+      <div className="flex flex-col py-1">
         {items.map((item) => (
           <Link
             key={item.href}
             href={item.href}
-            className="py-2 border-b border-white/10 last:border-0"
+            className="block px-4 py-3 text-sm font-semibold uppercase tracking-normal leading-snug border-b border-white/10 last:border-0"
           >
             {item.label}
           </Link>
         ))}
-      </>
+      </div>
     );
   }
 

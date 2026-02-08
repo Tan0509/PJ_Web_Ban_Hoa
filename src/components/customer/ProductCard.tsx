@@ -57,7 +57,7 @@ export default function ProductCard({ product }: { product: Product }) {
         <div className="relative aspect-[3/4] bg-gray-100">
           {img ? (
             <Image
-              src={getOptimizedImageUrl(img, { width: 400 })}
+              src={getOptimizedImageUrl(img, { width: 800 })}
               alt={product.name}
               fill
               sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"

@@ -21,7 +21,7 @@ function applyTheme(dark: boolean) {
   }
 }
 
-export default function CustomerDarkModeToggle() {
+export default function CustomerDarkModeToggle({ hideLabelOnMobile = false }: { hideLabelOnMobile?: boolean }) {
   const [isDark, setIsDark] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -64,7 +64,7 @@ export default function CustomerDarkModeToggle() {
         <span className="customer-theme-circle inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-300 shrink-0" aria-hidden>
           <span className="h-5 w-5" />
         </span>
-        <span className="leading-none">Dark</span>
+        <span className={`leading-none ${hideLabelOnMobile ? 'hidden sm:inline' : ''}`}>Dark</span>
       </div>
     );
   }
@@ -80,7 +80,9 @@ export default function CustomerDarkModeToggle() {
       <span className="customer-theme-circle relative inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-300 bg-white shrink-0 transition-colors hover:border-[#0f5c5c]">
         {iconSvg}
       </span>
-      <span className="leading-none">{isDark ? 'Dark' : 'Light'}</span>
+      <span className={`leading-none ${hideLabelOnMobile ? 'hidden sm:inline' : ''}`}>
+        {isDark ? 'Dark' : 'Light'}
+      </span>
     </button>
   );
 }
