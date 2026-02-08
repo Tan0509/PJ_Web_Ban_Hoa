@@ -5,6 +5,7 @@ import Link from 'next/link';
 import './admin.css';
 import AdminDarkModeToggle from '@/components/admin/AdminDarkModeToggle';
 import AdminNotificationBell from '@/components/admin/AdminNotificationBell';
+import AdminRebuildHomeCacheButton from '@/components/admin/AdminRebuildHomeCacheButton';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -138,6 +139,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <header className="admin-topbar">
           <div className="admin-top-title">Quản trị</div>
           <div className="admin-top-actions">
+            <AdminRebuildHomeCacheButton />
             <AdminDarkModeToggle />
             <AdminNotificationBell />
           </div>

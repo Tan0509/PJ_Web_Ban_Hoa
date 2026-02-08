@@ -125,3 +125,15 @@ export async function getHomeCategoryCacheBySlugs(slugs: string[]) {
 
   return slugs.map((s) => map.get(s)).filter(Boolean);
 }
+
+export async function rebuildHomeCategoryCache() {
+  await connectMongo();
+  const categories = await Category.find({ active: { $ne: false } })
+    .select('slug')
+    .lean();
+  const slugs = categories
+    .map((c: any) => String(c?.slug || '').trim())
+    .filter(Boolean);
+  const built = await Promise.all(slugs.map((s) => buildCacheForSlug(s)));
+  return { count: built.filter(Boolean).length, slugs };
+}
