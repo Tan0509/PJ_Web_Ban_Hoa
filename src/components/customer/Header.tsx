@@ -18,11 +18,21 @@ export default function CustomerHeader({ categories }: Props) {
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [q, setQ] = useState('');
+  const [pinMenu, setPinMenu] = useState(false);
   const { favoritesCount, cartCount } = useStore();
 
   useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    const onScroll = () => {
+      setPinMenu(window.scrollY > 160);
+    };
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   const handleSearch = () => {
     const keyword = q.trim();
@@ -113,15 +123,21 @@ export default function CustomerHeader({ categories }: Props) {
             </Link>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setMobileOpen((v) => !v)}
-            className="sm:hidden inline-flex items-center justify-center h-10 w-full rounded-md border border-gray-300 text-gray-700 mb-2 -mt-1 transition-all duration-200 hover:bg-gray-50 active:scale-[0.98]"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
+          <div className="sm:hidden h-10 mb-2 -mt-1 w-full">
+            <button
+              type="button"
+              onClick={() => setMobileOpen((v) => !v)}
+              className={`flex items-center justify-center h-10 w-full rounded-md border border-gray-300 text-gray-700 bg-white/95 backdrop-blur transition-all duration-200 hover:bg-gray-50 active:scale-[0.98] dark:bg-[#1f2937]/95 dark:text-gray-100 dark:border-[#374151] dark:hover:bg-[#2b3646] ${
+                pinMenu
+                  ? 'fixed top-2 left-4 right-4 z-50'
+                  : 'relative w-full'
+              }`}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         <div className="hidden sm:block bg-[#0f5c5c] text-white rounded-md overflow-visible">
@@ -132,7 +148,11 @@ export default function CustomerHeader({ categories }: Props) {
       </div>
 
       {mobileOpen && (
-        <div className="sm:hidden bg-[#0f5c5c] text-white animate-[slideDown_220ms_ease-out]">
+        <div
+          className={`sm:hidden bg-[#0f5c5c] text-white animate-[slideDown_220ms_ease-out] ${
+            pinMenu ? 'fixed left-0 right-0 top-14 z-40' : ''
+          }`}
+        >
           <div className="container-section py-5 px-4 flex flex-col gap-4">
             <div className="px-2 mt-6 mb-1">
               <div className="rounded-xl bg-white/15 border border-white/15 divide-y divide-white/10 overflow-hidden shadow-sm">
