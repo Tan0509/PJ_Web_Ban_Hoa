@@ -28,8 +28,8 @@ export async function GET(req: Request) {
         { success: true, data: cached.data },
         {
           headers: {
-            // Cache at the edge to speed up repeated home loads
-            'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=3600',
+            // Avoid edge cache mixing across different query params
+            'Cache-Control': 'private, no-store',
           },
         }
       );
@@ -43,8 +43,8 @@ export async function GET(req: Request) {
       { success: true, data: categoryProducts },
       {
         headers: {
-          // Cache at the edge to speed up repeated home loads
-          'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=3600',
+          // Avoid edge cache mixing across different query params
+          'Cache-Control': 'private, no-store',
         },
       }
     );
