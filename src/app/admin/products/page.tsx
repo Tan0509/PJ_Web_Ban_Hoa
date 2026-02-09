@@ -324,14 +324,14 @@ export default function AdminProducts() {
 
       setEditing(full);
       const priceNum = full.price ?? 0;
-      const salePriceNum = full.salePrice ?? 0;
+      const salePriceNum = typeof full.salePrice === 'number' ? full.salePrice : undefined;
       const hasStoredInput = full.saleInputType && (full.saleInputValue !== undefined && full.saleInputValue !== null);
       let saleType: 'amount' | 'percent' = 'amount';
       let saleValue = '';
       if (hasStoredInput && (full.saleInputType === 'amount' || full.saleInputType === 'percent')) {
         saleType = full.saleInputType;
         saleValue = full.saleInputValue != null ? formatWithDots(String(full.saleInputValue)) : '';
-      } else if (priceNum > 0 && salePriceNum >= 0 && priceNum > salePriceNum) {
+      } else if (typeof salePriceNum === 'number' && priceNum > 0 && priceNum > salePriceNum) {
         saleType = 'amount';
         saleValue = formatWithDots(String(priceNum - salePriceNum));
       }
@@ -384,6 +384,10 @@ export default function AdminProducts() {
         saleInputType = 'percent';
         saleInputValue = percent;
       }
+    } else {
+      salePriceNum = undefined;
+      saleInputType = undefined;
+      saleInputValue = undefined;
     }
     const payload = {
       name: form.name.trim(),
