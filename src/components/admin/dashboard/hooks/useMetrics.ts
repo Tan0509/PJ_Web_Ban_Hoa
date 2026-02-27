@@ -2,12 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { ChartMetric } from '../../chart-system/types';
-import {
-  mapOrdersApiToChartMetric,
-  mapRevenueApiToChartMetric,
-  mapRevenueApiToKpi,
-  mapUsersApiToChartMetric,
-} from '../adapters/metricsAdapters';
+import { mapUsersApiToChartMetric, mapVisitsApiToChartMetric } from '../adapters/metricsAdapters';
 
 type GroupBy = 'day' | 'month' | 'year' | 'hour';
 
@@ -18,7 +13,7 @@ type MetricResult = {
 };
 
 type SeriesResult = {
-  data: { date: string; revenue: number; orders: number; users: number }[] | null;
+  data: { date: string; users: number; visits: number }[] | null;
   loading: boolean;
   error: string | null;
 };
@@ -28,6 +23,12 @@ type VisitSummary = {
   activeDays: number;
   totalDays: number;
   todayVisits: number;
+};
+
+type ProductViewSummary = {
+  totalViews: number;
+  distinctProductCount: number;
+  topProducts: { productSlug: string; productName: string; views: number }[];
 };
 
 type RangeParams = { from: string; to: string; groupBy?: GroupBy };
@@ -55,11 +56,7 @@ function buildQuery(params: RangeParams) {
   return `?${url.toString()}`;
 }
 
-function useMetric(
-  metric: 'revenue' | 'orders' | 'users',
-  range: RangeParams,
-  mapper: (resp: any) => ChartMetric
-): MetricResult {
+function useMetric(metric: 'users' | 'visits', range: RangeParams, mapper: (resp: any) => ChartMetric): MetricResult {
   const [data, setData] = useState<ChartMetric | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -71,7 +68,6 @@ function useMetric(
         setLoading(true);
         setError(null);
         const query = buildQuery(range);
-        // TODO: Replace endpoint if backend changes
         const resp = await fetchMetric(`/api/admin/metrics/${metric}${query}`, controller.signal);
         setData(mapper(resp));
       } catch (err: any) {
@@ -89,20 +85,12 @@ function useMetric(
   return { data, loading, error };
 }
 
-export function useRevenueMetric(range: RangeParams): MetricResult {
-  return useMetric('revenue', range, mapRevenueApiToChartMetric);
-}
-
-export function useOrdersMetric(range: RangeParams): MetricResult {
-  return useMetric('orders', range, mapOrdersApiToChartMetric);
-}
-
 export function useUsersMetric(range: RangeParams): MetricResult {
   return useMetric('users', range, mapUsersApiToChartMetric);
 }
 
-export function useRevenueKpi(range: RangeParams): MetricResult {
-  return useMetric('revenue', range, mapRevenueApiToKpi);
+export function useVisitsMetric(range: RangeParams): MetricResult {
+  return useMetric('visits', range, mapVisitsApiToChartMetric);
 }
 
 export function useCombinedSeries(range: RangeParams): SeriesResult {
@@ -117,24 +105,20 @@ export function useCombinedSeries(range: RangeParams): SeriesResult {
         setLoading(true);
         setError(null);
         const query = buildQuery(range);
-        const [rev, ord, usr] = await Promise.all([
-          fetchMetric(`/api/admin/metrics/revenue${query}`, controller.signal),
-          fetchMetric(`/api/admin/metrics/orders${query}`, controller.signal),
+        const [usr, vst] = await Promise.all([
           fetchMetric(`/api/admin/metrics/users${query}`, controller.signal),
+          fetchMetric(`/api/admin/metrics/visits${query}`, controller.signal),
         ]);
         const labelSet = new Set<string>();
-        rev.data?.forEach((d: any) => labelSet.add(d.label));
-        ord.data?.forEach((d: any) => labelSet.add(d.label));
         usr.data?.forEach((d: any) => labelSet.add(d.label));
+        vst.data?.forEach((d: any) => labelSet.add(d.label));
         const labels = Array.from(labelSet).sort();
-        const revenueMap = Object.fromEntries((rev.data || []).map((d: any) => [d.label, d.value]));
-        const ordersMap = Object.fromEntries((ord.data || []).map((d: any) => [d.label, d.value]));
         const usersMap = Object.fromEntries((usr.data || []).map((d: any) => [d.label, d.value]));
+        const visitsMap = Object.fromEntries((vst.data || []).map((d: any) => [d.label, d.value]));
         const merged = labels.map((label) => ({
           date: label,
-          revenue: revenueMap[label] || 0,
-          orders: ordersMap[label] || 0,
           users: usersMap[label] || 0,
+          visits: visitsMap[label] || 0,
         }));
         setData(merged);
       } catch (err: any) {
@@ -156,71 +140,6 @@ export function useDefaultRange(): RangeParams {
   const today = new Date();
   const dateStr = today.toISOString().slice(0, 10);
   return useMemo(() => ({ from: dateStr, to: dateStr, groupBy: 'hour' as GroupBy }), [dateStr]);
-}
-
-type BestSellingResult = {
-  productName: string | null;
-  categoryName: string | null;
-  orderCount: number;
-  totalOrders: number;
-  formatted: string;
-  loading: boolean;
-  error: string | null;
-};
-
-export function useBestSellingProduct(range: { from: string; to: string }): BestSellingResult {
-  const [data, setData] = useState<{
-    productName: string | null;
-    categoryName: string | null;
-    orderCount: number;
-    totalOrders: number;
-  } | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    async function run() {
-      try {
-        setLoading(true);
-        setError(null);
-        const params = new URLSearchParams({ from: range.from, to: range.to });
-        const res = await fetch(`/api/admin/best-selling-product?${params}`, { signal: controller.signal });
-        if (!res.ok) throw new Error('Fetch error');
-        const json = await res.json();
-        setData({
-          productName: json.productName ?? null,
-          categoryName: json.categoryName ?? null,
-          orderCount: typeof json.orderCount === 'number' ? json.orderCount : 0,
-          totalOrders: typeof json.totalOrders === 'number' ? json.totalOrders : 0,
-        });
-      } catch (err: any) {
-        if (err?.name === 'AbortError') return;
-        setError(err?.message || 'Unknown error');
-        setData(null);
-      } finally {
-        setLoading(false);
-      }
-    }
-    run();
-    return () => controller.abort();
-  }, [range.from, range.to]);
-
-  const formatted = useMemo(() => {
-    if (!data?.productName) return loading ? '...' : '—';
-    const cat = data.categoryName && data.categoryName !== '—' ? ` (${data.categoryName})` : '';
-    return `${data.productName}${cat}`;
-  }, [data, loading]);
-
-  return {
-    productName: data?.productName ?? null,
-    categoryName: data?.categoryName ?? null,
-    orderCount: data?.orderCount ?? 0,
-    totalOrders: data?.totalOrders ?? 0,
-    formatted,
-    loading,
-    error: error ?? null,
-  };
 }
 
 export function useVisitSummary(range: { from: string; to: string }) {
@@ -256,6 +175,52 @@ export function useVisitSummary(range: { from: string; to: string }) {
     run();
     return () => controller.abort();
   }, [range.from, range.to]);
+
+  return { data, loading, error };
+}
+
+export function useProductViewSummary(range: { from: string; to: string; limit?: number }) {
+  const [data, setData] = useState<ProductViewSummary | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    async function run() {
+      try {
+        setLoading(true);
+        setError(null);
+        const params = new URLSearchParams({
+          from: range.from,
+          to: range.to,
+          limit: String(range.limit || 10),
+        });
+        const res = await fetch(`/api/admin/product-views/summary?${params}`, { signal: controller.signal });
+        if (!res.ok) throw new Error('Fetch error');
+        const json = await res.json();
+        const d = json?.data || {};
+        setData({
+          totalViews: Number(d.totalViews || 0),
+          distinctProductCount: Number(d.distinctProductCount || 0),
+          topProducts: Array.isArray(d.topProducts)
+            ? d.topProducts.map((p: any) => ({
+                productSlug: String(p.productSlug || ''),
+                productName: String(p.productName || p.productSlug || ''),
+                views: Number(p.views || 0),
+              }))
+            : [],
+        });
+      } catch (err: any) {
+        if (err?.name === 'AbortError') return;
+        setError(err?.message || 'Unknown error');
+        setData(null);
+      } finally {
+        setLoading(false);
+      }
+    }
+    run();
+    return () => controller.abort();
+  }, [range.from, range.to, range.limit]);
 
   return { data, loading, error };
 }

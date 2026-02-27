@@ -1,12 +1,13 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import Image from 'next/image';
 import ChartControls from './components/ChartControls';
 import ChartRenderer from './components/ChartRenderer';
 import SummaryCards from './components/SummaryCards';
 import { ChartType, DateRange, MetricColorState, MetricKey } from './types/dashboard';
 import { DatePresetKey, DEFAULT_COLORS } from './utils/chartConfig';
-import { useBestSellingProduct, useCombinedSeries, useDefaultRange, useVisitSummary } from './hooks/useMetrics';
+import { useCombinedSeries, useDefaultRange, useProductViewSummary, useVisitSummary } from './hooks/useMetrics';
 
 const DASHBOARD_FILTER_KEY = 'dashboardFilter';
 
@@ -72,16 +73,20 @@ function getRangeForPreset(preset: DatePresetKey): DateRange {
 
 export default function DashboardPage() {
   const [chartType, setChartType] = useState<ChartType>('line');
-  const [selectedMetrics, setSelectedMetrics] = useState<MetricKey[]>(['revenue']);
+  const [selectedMetrics, setSelectedMetrics] = useState<MetricKey[]>(['visits']);
   const [colors, setColors] = useState<MetricColorState>({
-    revenue: { mode: 'default', color: DEFAULT_COLORS.revenue },
-    orders: { mode: 'default', color: DEFAULT_COLORS.orders },
     users: { mode: 'default', color: DEFAULT_COLORS.users },
+    visits: { mode: 'default', color: DEFAULT_COLORS.visits },
   });
   const [dateRange, setDateRange] = useState<DateRange>(getDefaultRange);
   const [activePreset, setActivePreset] = useState<DatePresetKey | null>(null);
   const [hourFrom, setHourFrom] = useState(0);
   const [hourTo, setHourTo] = useState(23);
+  const [selectedProductSlug, setSelectedProductSlug] = useState<string | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
+  const [productModalLoading, setProductModalLoading] = useState(false);
+  const [productModalError, setProductModalError] = useState<string | null>(null);
+  const [activeImage, setActiveImage] = useState('');
   const defaultRange = useDefaultRange();
 
   useEffect(() => {
@@ -134,15 +139,23 @@ export default function DashboardPage() {
 
   const { data: combinedSeries, loading: seriesLoading, error: seriesError } = useCombinedSeries(validRange);
   const filteredData = combinedSeries || [];
-  const { formatted: bestSeller, productName, categoryName, orderCount, totalOrders } = useBestSellingProduct({ from: validRange.from, to: validRange.to });
   const { data: visitSummary, loading: visitLoading, error: visitError } = useVisitSummary({
     from: validRange.from,
     to: validRange.to,
   });
+  const {
+    data: productViewSummary,
+    loading: productViewLoading,
+    error: productViewError,
+  } = useProductViewSummary({
+    from: validRange.from,
+    to: validRange.to,
+    limit: 10,
+  });
 
   const appliedColors = useMemo(
     () =>
-      (['revenue', 'orders', 'users'] as MetricKey[]).reduce((acc, key) => {
+      (['users', 'visits'] as MetricKey[]).reduce((acc, key) => {
         const cfg = colors[key];
         acc[key] = cfg.mode === 'custom' ? cfg.color : DEFAULT_COLORS[key];
         return acc;
@@ -154,12 +167,42 @@ export default function DashboardPage() {
     setSelectedMetrics([metric]);
   };
 
+  const closeProductModal = useCallback(() => {
+    setSelectedProductSlug(null);
+    setSelectedProduct(null);
+    setProductModalLoading(false);
+    setProductModalError(null);
+    setActiveImage('');
+  }, []);
+
+  const openProductModal = useCallback(async (slug: string) => {
+    if (!slug) return;
+    setSelectedProductSlug(slug);
+    setSelectedProduct(null);
+    setProductModalError(null);
+    setProductModalLoading(true);
+    setActiveImage('');
+    try {
+      const res = await fetch(`/api/product/${encodeURIComponent(slug)}`, { cache: 'no-store' });
+      if (!res.ok) throw new Error('Không tải được chi tiết sản phẩm');
+      const json = await res.json();
+      const product = json?.data?.product;
+      if (!product) throw new Error('Không có dữ liệu sản phẩm');
+      setSelectedProduct(product);
+      const firstImage = Array.isArray(product.images) ? product.images.find(Boolean) : '';
+      setActiveImage(firstImage || '');
+    } catch (err: any) {
+      setProductModalError(err?.message || 'Không tải được chi tiết sản phẩm');
+    } finally {
+      setProductModalLoading(false);
+    }
+  }, []);
+
   return (
     <div className="space-y-6">
       <SummaryCards
         data={filteredData}
-        bestSeller={bestSeller}
-        bestSellerInfo={{ productName, categoryName, orderCount, totalOrders }}
+        visitSummary={visitSummary || undefined}
         colors={appliedColors}
       />
 
@@ -238,6 +281,183 @@ export default function DashboardPage() {
           />
         )}
       </div>
+
+      <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+        <div className="mb-4">
+          <h2 className="text-lg font-semibold text-gray-900">Lượt xem sản phẩm</h2>
+          <p className="text-sm text-gray-500">Top sản phẩm được xem trong khoảng thời gian đang lọc.</p>
+        </div>
+        {productViewLoading ? (
+          <div className="h-40 rounded-lg border border-dashed border-gray-200 bg-gray-50 animate-pulse" />
+        ) : productViewError ? (
+          <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 p-4 text-sm text-red-600">
+            Không tải được dữ liệu lượt xem sản phẩm.
+          </div>
+        ) : (
+          <>
+            <div className="mb-3 flex flex-wrap items-center gap-3 text-sm">
+              <span className="inline-flex items-center gap-2 rounded-md bg-sky-50 text-sky-700 px-3 py-1">
+                Tổng lượt xem: <strong>{productViewSummary?.totalViews || 0}</strong>
+              </span>
+              <span className="inline-flex items-center gap-2 rounded-md bg-emerald-50 text-emerald-700 px-3 py-1">
+                Sản phẩm có lượt xem: <strong>{productViewSummary?.distinctProductCount || 0}</strong>
+              </span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className="text-left text-gray-500 border-b border-gray-200">
+                    <th className="py-2 pr-3">#</th>
+                    <th className="py-2 pr-3">Sản phẩm</th>
+                    <th className="py-2 pr-3">Slug</th>
+                    <th className="py-2 text-right">Lượt xem</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(productViewSummary?.topProducts || []).length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="py-4 text-center text-gray-500">
+                        Chưa có dữ liệu.
+                      </td>
+                    </tr>
+                  ) : (
+                    (productViewSummary?.topProducts || []).map((p, idx) => (
+                      <tr key={`${p.productSlug}-${idx}`} className="border-b border-gray-100">
+                        <td className="py-2 pr-3 text-gray-500">{idx + 1}</td>
+                        <td className="py-2 pr-3 font-medium text-gray-900">
+                          {p.productSlug ? (
+                            <button
+                              type="button"
+                              onClick={() => openProductModal(p.productSlug)}
+                              className="text-left text-emerald-700 hover:text-emerald-800 hover:underline"
+                            >
+                              {p.productName || p.productSlug || '—'}
+                            </button>
+                          ) : (
+                            p.productName || '—'
+                          )}
+                        </td>
+                        <td className="py-2 pr-3 text-gray-500">{p.productSlug || '—'}</td>
+                        <td className="py-2 text-right font-semibold text-gray-900">{p.views}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+      </div>
+
+      {selectedProductSlug && (
+        <div
+          className="fixed inset-0 z-[1000] bg-black/50 flex items-center justify-center p-4"
+          onClick={closeProductModal}
+        >
+          <div
+            className="w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-white rounded-xl shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 bg-white px-5 py-4">
+              <h3 className="text-lg font-semibold text-gray-900">Chi tiết sản phẩm</h3>
+              <button
+                type="button"
+                onClick={closeProductModal}
+                className="rounded-md px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100"
+              >
+                Đóng
+              </button>
+            </div>
+            <div className="p-5">
+              {productModalLoading ? (
+                <div className="h-64 animate-pulse rounded-lg border border-dashed border-gray-200 bg-gray-50" />
+              ) : productModalError ? (
+                <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                  {productModalError}
+                </div>
+              ) : selectedProduct ? (
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                  <div className="space-y-3">
+                    <div className="relative aspect-square w-full overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
+                      {activeImage ? (
+                        <Image
+                          src={activeImage}
+                          alt={selectedProduct.name || selectedProductSlug}
+                          fill
+                          sizes="(max-width: 768px) 100vw, 50vw"
+                          className="object-cover"
+                          unoptimized
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-gray-400">
+                          Không có ảnh
+                        </div>
+                      )}
+                    </div>
+                    {Array.isArray(selectedProduct.images) && selectedProduct.images.filter(Boolean).length > 1 && (
+                      <div className="grid grid-cols-5 gap-2">
+                        {selectedProduct.images.filter(Boolean).map((img: string, idx: number) => (
+                          <button
+                            type="button"
+                            key={`${img}-${idx}`}
+                            onClick={() => setActiveImage(img)}
+                            className={`relative aspect-square overflow-hidden rounded-md border ${
+                              activeImage === img ? 'border-emerald-600 ring-1 ring-emerald-500' : 'border-gray-200'
+                            }`}
+                          >
+                            <Image
+                              src={img}
+                              alt={`${selectedProduct.name}-${idx}`}
+                              fill
+                              sizes="96px"
+                              className="object-cover"
+                              unoptimized
+                            />
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-3">
+                    <div>
+                      <div className="text-xs uppercase tracking-wide text-gray-500">Tên sản phẩm</div>
+                      <div className="text-xl font-semibold text-gray-900">{selectedProduct.name || '—'}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs uppercase tracking-wide text-gray-500">Slug</div>
+                      <div className="text-sm text-gray-700">{selectedProduct.slug || selectedProductSlug}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs uppercase tracking-wide text-gray-500">Giá</div>
+                      <div className="text-sm text-gray-700">
+                        {Number.isFinite(Number(selectedProduct.price))
+                          ? `${Number(selectedProduct.price).toLocaleString('vi-VN')} VND`
+                          : '—'}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs uppercase tracking-wide text-gray-500">Mô tả ngắn</div>
+                      <div className="rounded-md bg-gray-50 p-3 text-sm text-gray-700">
+                        {selectedProduct.metaDescription || '—'}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs uppercase tracking-wide text-gray-500">Mô tả chi tiết</div>
+                      <div className="max-h-40 overflow-auto rounded-md bg-gray-50 p-3 text-sm whitespace-pre-line text-gray-700">
+                        {selectedProduct.description || '—'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 p-4 text-sm text-gray-500">
+                  Không có dữ liệu sản phẩm.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

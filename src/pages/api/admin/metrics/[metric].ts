@@ -2,13 +2,14 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '@/lib/mongodb';
 import Order from '@/models/Order';
 import Customer from '@/models/Customer';
+import SiteVisit from '@/models/SiteVisit';
 
 type GroupBy = 'day' | 'month' | 'hour';
-type MetricKey = 'revenue' | 'orders' | 'users';
+type MetricKey = 'revenue' | 'orders' | 'users' | 'visits';
 
 type ApiResponse = {
   metric: MetricKey;
-  unit: 'VND' | 'orders' | 'users';
+  unit: 'VND' | 'orders' | 'users' | 'visits';
   groupBy: GroupBy;
   from: string;
   to: string;
@@ -22,6 +23,7 @@ const METRIC_UNITS: Record<MetricKey, ApiResponse['unit']> = {
   revenue: 'VND',
   orders: 'orders',
   users: 'users',
+  visits: 'visits',
 };
 
 function parseDate(value?: string) {
@@ -90,6 +92,15 @@ async function aggregateUsers(from: Date, to: Date, groupBy: GroupBy) {
   return agg;
 }
 
+async function aggregateVisits(from: Date, to: Date, groupBy: GroupBy) {
+  const groupFormat = groupBy === 'month' ? '%Y-%m' : groupBy === 'hour' ? '%Y-%m-%d-%H' : '%Y-%m-%d';
+  const agg = await SiteVisit.aggregate<{ _id: string; count: number }>([
+    { $match: { createdAt: { $gte: from, $lte: to } } },
+    { $group: { _id: { $dateToString: { format: groupFormat, date: '$createdAt' } }, count: { $sum: 1 } } },
+  ]);
+  return agg;
+}
+
 function fillGaps(labels: string[], values: Record<string, number>) {
   return labels.map((label) => ({
     label,
@@ -110,7 +121,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 
   const metricParam = (req.query.metric as string) || '';
   const metric = metricParam as MetricKey;
-  if (!['revenue', 'orders', 'users'].includes(metric)) {
+  if (!['revenue', 'orders', 'users', 'visits'].includes(metric)) {
     return res.status(400).json({ message: 'Unsupported metric' });
   }
 
@@ -137,6 +148,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     raw = await aggregateOrders(start, end, groupBy);
   } else if (metric === 'users') {
     raw = await aggregateUsers(start, end, groupBy);
+  } else if (metric === 'visits') {
+    raw = await aggregateVisits(start, end, groupBy);
   }
 
   const valueMap: Record<string, number> = {};

@@ -164,9 +164,7 @@ export default function AdminNotificationBell() {
     didMarkAllRef.current = false;
     // best-effort mark read
     await markReadIds([n._id]);
-    // deep-link to orders page with auto-open modal
-    const target = n.orderId ? `/admin/orders?open=${encodeURIComponent(n.orderId)}` : '/admin/orders';
-    router.push(target);
+    router.push('/admin');
   };
 
   return (
@@ -214,8 +212,8 @@ export default function AdminNotificationBell() {
             )}
           </div>
           <div className="admin-bell-panel-foot">
-            <button type="button" className="admin-bell-link" onClick={() => router.push('/admin/orders')}>
-              Xem trang đơn hàng
+            <button type="button" className="admin-bell-link" onClick={() => router.push('/admin')}>
+              Xem dashboard
             </button>
           </div>
         </div>

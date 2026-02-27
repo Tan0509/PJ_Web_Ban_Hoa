@@ -4,7 +4,6 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import { useToast } from '@/components/ToastProvider';
-import Link from 'next/link';
 
 // Admin Settings Page
 // Scope: Admin panel only
@@ -33,9 +32,6 @@ export default function AdminSettings() {
   const [notificationToggle, setNotificationToggle] = useState(false);
   const [notificationVolume, setNotificationVolume] = useState(70);
 
-  // Order notification emails (admin)
-  const [orderEmails, setOrderEmails] = useState<string[]>(['']);
-  const [savingEmails, setSavingEmails] = useState(false);
 
   // Favicon
   const [favicon, setFavicon] = useState<string>('');
@@ -43,18 +39,6 @@ export default function AdminSettings() {
   const [uploadingFavicon, setUploadingFavicon] = useState(false);
   const faviconInputRef = useRef<HTMLInputElement>(null);
 
-  const loadOrderEmails = async () => {
-    try {
-      const res = await fetch('/api/admin/settings/order-notify-emails');
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.message || 'Không tải được email thông báo');
-      const list = Array.isArray(data?.emails) ? data.emails : [];
-      setOrderEmails(list.length ? list : ['']);
-    } catch (err: any) {
-      // keep silent in settings page; user can still input manually
-      setOrderEmails((prev) => (prev.length ? prev : ['']));
-    }
-  };
 
   const NOTIFICATION_SOUND_KEY = 'admin_notification_sound_enabled';
   const NOTIFICATION_VOLUME_KEY = 'admin_notification_sound_volume';
@@ -187,7 +171,6 @@ export default function AdminSettings() {
 
   useEffect(() => {
     fetchMe();
-    loadOrderEmails();
     loadFavicon();
   }, []);
 
@@ -342,83 +325,6 @@ export default function AdminSettings() {
             >
               Đăng xuất Admin
             </button>
-          </div>
-
-          <div className="border border-gray-200 rounded-lg p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-lg font-semibold text-gray-900">Email nhận đơn hàng mới</div>
-                <div className="text-sm text-gray-500">Gửi thông báo tới các email này khi có đơn mới (COD/Banking/Online).</div>
-              </div>
-              <Link
-                href="/admin/settings/banking"
-                className="text-sm font-semibold text-[#0f5c5c] hover:underline"
-              >
-                Cài đặt Banking →
-              </Link>
-            </div>
-
-            <div className="space-y-2">
-              {orderEmails.map((v, idx) => (
-                <div key={idx} className="flex items-center gap-2">
-                  <input
-                    value={v}
-                    onChange={(e) => {
-                      const next = [...orderEmails];
-                      next[idx] = e.target.value;
-                      setOrderEmails(next);
-                    }}
-                    placeholder="VD: admin@gmail.com"
-                    className="flex-1 border border-gray-200 rounded-md px-3 h-11 text-sm bg-white"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setOrderEmails((prev) => (prev.length > 1 ? prev.filter((_, i) => i !== idx) : ['']))}
-                    className="px-3 py-2 rounded-md border border-gray-200 text-sm hover:bg-gray-50"
-                  >
-                    Xoá
-                  </button>
-                </div>
-              ))}
-              <div className="flex items-center justify-between pt-1">
-                <button
-                  type="button"
-                  onClick={() => setOrderEmails((prev) => [...prev, ''])}
-                  className="px-3 py-2 rounded-md border border-gray-200 text-sm hover:bg-gray-50"
-                >
-                  + Thêm email
-                </button>
-                <button
-                  type="button"
-                  disabled={savingEmails}
-                  onClick={async () => {
-                    try {
-                      setSavingEmails(true);
-                      const cleaned = orderEmails.map((e) => e.trim()).filter(Boolean);
-                      const res = await fetch('/api/admin/settings/order-notify-emails', {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ emails: cleaned }),
-                      });
-                      const data = await res.json().catch(() => ({}));
-                      if (!res.ok) throw new Error(data?.message || 'Lưu thất bại');
-                      setOrderEmails((data?.emails || []).length ? data.emails : ['']);
-                      addToast('Đã lưu email thông báo', 'success');
-                    } catch (err: any) {
-                      addToast(err?.message || 'Lưu thất bại', 'error');
-                    } finally {
-                      setSavingEmails(false);
-                    }
-                  }}
-                  className="px-4 py-2 rounded-md bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50"
-                >
-                  {savingEmails ? 'Đang lưu...' : 'Lưu'}
-                </button>
-              </div>
-              <div className="text-xs text-gray-500">
-                Lưu ý: cần cấu hình SendGrid (SENDGRID_API_KEY, SENDGRID_FROM_EMAIL) để hệ thống gửi mail.
-              </div>
-            </div>
           </div>
 
           <div className="border border-gray-200 rounded-lg p-4 space-y-3">

@@ -21,11 +21,8 @@ import {
   DATE_LEGEND_PALETTE,
   formatDateDisplay,
   formatMonthDisplay,
-  formatRevenueAxis,
-  getRevenueUnitsInData,
   METRIC_LABELS,
   METRIC_TITLE_LABELS,
-  REVENUE_UNIT_LABELS,
 } from '../utils/chartConfig';
 
 type FilterType = 'day' | 'month' | 'year' | 'hour';
@@ -70,7 +67,6 @@ function buildChartTitle(
 
 function formatTooltipValue(value: unknown, metric: MetricKey): string | number {
   if (typeof value !== 'number') return String(value ?? '');
-  if (metric === 'revenue') return formatRevenueAxis(value);
   return new Intl.NumberFormat('vi-VN').format(value);
 }
 
@@ -112,13 +108,6 @@ export default function ChartRenderer({ chartType, selectedMetrics, colors, data
     }));
     const chartTitle = buildChartTitle(chartType, selectedMetrics, dateRange, filterType);
     const titleColor = colors[metric];
-    const isRevenue = metric === 'revenue';
-    const unitsInDataPie = getRevenueUnitsInData(displayData, metric);
-    const footnotePartsPie: string[] = [];
-    if (unitsInDataPie.K) footnotePartsPie.push(`K: ${REVENUE_UNIT_LABELS.K}`);
-    if (unitsInDataPie.M) footnotePartsPie.push(`M: ${REVENUE_UNIT_LABELS.M}`);
-    if (unitsInDataPie.B) footnotePartsPie.push(`B: ${REVENUE_UNIT_LABELS.B}`);
-    const footnotePie = isRevenue && footnotePartsPie.length > 0 ? footnotePartsPie.join(', ') : null;
     const tooltipFormatterPie = (value: unknown) => formatTooltipValue(value, metric);
 
     return (
@@ -142,7 +131,6 @@ export default function ChartRenderer({ chartType, selectedMetrics, colors, data
         </ResponsiveContainer>
         <div className="mt-3 text-center">
           <p className="text-xl font-medium" style={{ color: titleColor }}>{chartTitle}</p>
-          {footnotePie && <p className="mt-1 text-xs text-gray-500">{footnotePie}</p>}
         </div>
       </>
     );
@@ -157,17 +145,8 @@ export default function ChartRenderer({ chartType, selectedMetrics, colors, data
   const chartTitle = buildChartTitle(chartType, selectedMetrics, dateRange, filterType);
   const metric = selectedMetrics[0];
   const titleColor = colors[metric];
-  const isRevenue = metric === 'revenue';
-  const yAxisTickFormatter = isRevenue
-    ? (v: number) => formatRevenueAxis(v)
-    : (v: number) => new Intl.NumberFormat('vi-VN').format(v);
+  const yAxisTickFormatter = (v: number) => new Intl.NumberFormat('vi-VN').format(v);
   const tooltipFormatter = (value: unknown) => formatTooltipValue(value, metric);
-  const unitsInData = getRevenueUnitsInData(displayData, metric);
-  const footnoteParts: string[] = [];
-  if (unitsInData.K) footnoteParts.push(`K: ${REVENUE_UNIT_LABELS.K}`);
-  if (unitsInData.M) footnoteParts.push(`M: ${REVENUE_UNIT_LABELS.M}`);
-  if (unitsInData.B) footnoteParts.push(`B: ${REVENUE_UNIT_LABELS.B}`);
-  const footnote = isRevenue && footnoteParts.length > 0 ? footnoteParts.join(', ') : null;
 
   const xAxisTickFormatter = filterType === 'hour' ? (value: string) => `${parseHourFromDateLabel(value)}h` : undefined;
 
@@ -196,7 +175,6 @@ export default function ChartRenderer({ chartType, selectedMetrics, colors, data
         </ResponsiveContainer>
         <div className="mt-3 text-center">
           <p className="text-xl font-medium" style={{ color: titleColor }}>{chartTitle}</p>
-          {footnote && <p className="mt-1 text-xs text-gray-500">{footnote}</p>}
         </div>
       </>
     );
@@ -228,7 +206,6 @@ export default function ChartRenderer({ chartType, selectedMetrics, colors, data
       </ResponsiveContainer>
       <div className="mt-3 text-center">
         <p className="text-xl font-medium" style={{ color: titleColor }}>{chartTitle}</p>
-        {footnote && <p className="mt-1 text-xs text-gray-500">{footnote}</p>}
       </div>
     </>
   );

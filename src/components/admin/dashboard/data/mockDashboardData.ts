@@ -11,15 +11,13 @@ function generateMockDashboardData(days = 90): DashboardDataPoint[] {
     const d = new Date(today);
     d.setDate(today.getDate() - i);
     const date = d.toISOString().slice(0, 10);
-    const revenueBase = 1_000_000 + Math.floor(Math.random() * 1_400_000);
-    const ordersBase = 10 + Math.floor(Math.random() * 25);
     const usersBase = 3 + Math.floor(Math.random() * 15);
+    const visitsBase = 20 + Math.floor(Math.random() * 120);
 
     data.push({
       date,
-      revenue: revenueBase,
-      orders: ordersBase,
       users: usersBase,
+      visits: visitsBase,
     });
   }
 

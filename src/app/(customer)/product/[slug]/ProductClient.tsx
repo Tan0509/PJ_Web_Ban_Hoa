@@ -10,6 +10,27 @@ function productCacheKey(slug: string) {
   return `product:${slug}`;
 }
 
+const STORAGE_VISITOR_KEY = 'site_visitor_fingerprint_v1';
+const STORAGE_PRODUCT_VIEW_PREFIX = 'site_product_view_sent_v1';
+
+function getVietnamDateKey(now = new Date()) {
+  const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+  const vn = new Date(utc + 7 * 60 * 60000);
+  const y = vn.getFullYear();
+  const m = String(vn.getMonth() + 1).padStart(2, '0');
+  const d = String(vn.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function getOrCreateFingerprint() {
+  const existing = localStorage.getItem(STORAGE_VISITOR_KEY);
+  if (existing) return existing;
+  const seed = `${Date.now()}-${Math.random()}-${navigator.userAgent || ''}`;
+  const value = `v-${btoa(seed).replace(/=+$/g, '').slice(0, 48)}`;
+  localStorage.setItem(STORAGE_VISITOR_KEY, value);
+  return value;
+}
+
 export default function ProductClient({ slug }: { slug: string }) {
   const [data, setData] = useState<ProductData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -58,6 +79,27 @@ export default function ProductClient({ slug }: { slug: string }) {
       cancelled = true;
     };
   }, [slug]);
+
+  useEffect(() => {
+    const dateKey = getVietnamDateKey();
+    const sentKey = `${STORAGE_PRODUCT_VIEW_PREFIX}:${slug}:${dateKey}`;
+    if (sessionStorage.getItem(sentKey) === '1') return;
+
+    const fingerprint = getOrCreateFingerprint();
+    const productName = data?.product?.name || '';
+    fetch('/api/visit/product', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fingerprint, productSlug: slug, productName }),
+      keepalive: true,
+    })
+      .then((res) => {
+        if (res.ok) sessionStorage.setItem(sentKey, '1');
+      })
+      .catch(() => {
+        // ignore tracking errors
+      });
+  }, [slug, data?.product?.name]);
 
   if (loading && !data) {
     return (

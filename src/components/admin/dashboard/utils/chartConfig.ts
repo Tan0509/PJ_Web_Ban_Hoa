@@ -3,15 +3,13 @@
 import { ChartType, MetricKey } from '../types/dashboard';
 
 export const DEFAULT_COLORS: Record<MetricKey, string> = {
-  revenue: '#0ea5e9',   // sky-500 – xanh dương nổi bật
-  orders: '#10b981',   // emerald-500 – xanh lá rõ ràng
-  users: '#ec4899',    // pink-500 – hồng/magenta dễ phân biệt
+  users: '#ec4899',   // pink-500
+  visits: '#0ea5e9',  // sky-500
 };
 
 export const METRIC_LABELS: Record<MetricKey, string> = {
-  revenue: 'Doanh thu',
-  orders: 'Đơn hàng',
   users: 'Người dùng mới',
+  visits: 'Lượt truy cập',
 };
 
 /** Nhãn loại biểu đồ cho tiêu đề động */
@@ -23,9 +21,8 @@ export const CHART_TYPE_LABELS: Record<ChartType, string> = {
 
 /** Tên metric dùng trong tiêu đề (số lượng ...) */
 export const METRIC_TITLE_LABELS: Record<MetricKey, string> = {
-  revenue: 'số lượng doanh thu',
-  orders: 'số lượng đơn hàng',
   users: 'số lượng người dùng mới',
+  visits: 'số lượt truy cập',
 };
 
 /** Format ngày yyyy-mm-dd → dd/MM/yyyy */
@@ -56,49 +53,6 @@ export const DATE_PRESETS: { label: string; value: DatePresetKey }[] = [
   { label: 'Năm', value: 'year' },
 ];
 
-export function formatCurrency(value: number) {
-  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
-}
-
 export function formatNumber(value: number) {
   return new Intl.NumberFormat('vi-VN').format(value);
-}
-
-/** Format tiền cho trục/tooltip Doanh thu: K (trăm nghìn), M (triệu), B (tỷ) */
-export function formatRevenueAxis(value: number): string {
-  if (value >= 1e9) {
-    const n = value / 1e9;
-    return `${n % 1 === 0 ? n : n.toFixed(1)}B`;
-  }
-  if (value >= 1e6) {
-    const n = value / 1e6;
-    return `${n % 1 === 0 ? n : n.toFixed(1)}M`;
-  }
-  if (value >= 1e3) {
-    const n = value / 1e3;
-    return `${n % 1 === 0 ? n : n.toFixed(1)}K`;
-  }
-  return String(value);
-}
-
-/** Đơn vị ghi chú: K / M / B */
-export const REVENUE_UNIT_LABELS = { K: 'Trăm Nghìn VND', M: 'Triệu VND', B: 'Tỷ VND' } as const;
-
-/** Xác định đơn vị xuất hiện trong dữ liệu (revenue) */
-export function getRevenueUnitsInData(
-  data: Array<{ revenue?: number }>,
-  metricKey: string
-): { K: boolean; M: boolean; B: boolean } {
-  if (metricKey !== 'revenue' || !data.length) return { K: false, M: false, B: false };
-  const key = 'revenue' as keyof (typeof data)[0];
-  let max = 0;
-  for (const row of data) {
-    const v = Number(row[key]);
-    if (typeof v === 'number' && !Number.isNaN(v)) max = Math.max(max, v);
-  }
-  return {
-    K: max >= 1e3,
-    M: max >= 1e6,
-    B: max >= 1e9,
-  };
 }

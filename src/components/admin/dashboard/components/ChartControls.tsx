@@ -30,7 +30,7 @@ type ChartControlsProps = {
   };
 };
 
-const metricList: MetricKey[] = ['revenue', 'orders', 'users'];
+const metricList: MetricKey[] = ['users', 'visits'];
 
 function lastDayOfMonth(year: number, monthOneBased: number): string {
   const d = new Date(year, monthOneBased, 0); // month 1-12, day 0 = last day of prev month

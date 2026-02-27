@@ -1,13 +1,12 @@
 'use client';
 
 export type ChartType = 'line' | 'bar' | 'pie';
-export type MetricKey = 'revenue' | 'orders' | 'users';
+export type MetricKey = 'users' | 'visits';
 
 export interface DashboardDataPoint {
   date: string; // ISO yyyy-mm-dd
-  revenue: number;
-  orders: number;
   users: number;
+  visits: number;
 }
 
 export interface MetricColorConfig {
