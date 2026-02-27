@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import CustomerHeader from './Header';
 import SessionProviderWrapper from './SessionProviderWrapper';
 import { StoreProvider } from './StoreProvider';
+import SiteVisitTracker from './SiteVisitTracker';
 
 // Dynamic import Footer to reduce initial bundle size (below-the-fold content)
 const CustomerFooter = dynamic(() => import('./Footer'), {
@@ -20,6 +21,7 @@ export default function CustomerLayoutClient({ categories, children }: Props) {
   return (
     <SessionProviderWrapper>
       <StoreProvider>
+        <SiteVisitTracker />
         <Suspense
           fallback={
             <header className="bg-white shadow-sm">

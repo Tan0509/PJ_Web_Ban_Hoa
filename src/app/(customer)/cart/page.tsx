@@ -2,11 +2,11 @@
 
 import Link from 'next/link';
 import { useStore } from '@/components/customer/StoreProvider';
+import { CONTACT_PHONE, ZALO_ORDER_LINK } from '@/lib/contact';
 
 export default function CartPage() {
   const { cart, hydrated, removeFromCart, updateCartQuantity } = useStore();
   const empty = hydrated && cart.length === 0;
-  const total = cart.reduce((sum, item) => sum + ((item.product.salePrice ?? item.product.price ?? 0) * item.quantity), 0);
 
   return (
     <div className="container-section my-10 md:my-12 lg:my-16 space-y-6 md:space-y-8">
@@ -65,30 +65,28 @@ export default function CartPage() {
                   </div>
                 </div>
                 <div className="text-left sm:text-right">
-                  <div className="text-base font-semibold text-gray-900">
-                    {((item.product.salePrice ?? item.product.price ?? 0) * item.quantity).toLocaleString('vi-VN')} VNĐ
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    {(item.product.salePrice ?? item.product.price ?? 0).toLocaleString('vi-VN')} VNĐ / sản phẩm
-                  </div>
+                  <div className="text-base font-semibold text-[#0f5c5c]">Xem chi tiết</div>
                   {item.note && <div className="text-xs text-gray-500 mt-1">Ghi chú: {item.note}</div>}
                 </div>
               </div>
             ))}
           </div>
 
-          <div className="flex items-center justify-between text-gray-900 font-semibold">
-            <span>Tổng tạm tính</span>
-            <span>{total.toLocaleString('vi-VN')} VNĐ</span>
-          </div>
-
-          <div className="flex justify-end">
+          <div className="flex flex-wrap items-center justify-end gap-3">
             <Link
-              href="/checkout"
+              href={ZALO_ORDER_LINK}
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex items-center justify-center rounded-md bg-[#0f5c5c] px-5 py-2 text-white font-semibold shadow hover:bg-[#0c4d4d] transition"
             >
-              Thanh toán
+              Liên hệ đặt hàng
             </Link>
+            <a
+              href={`tel:${CONTACT_PHONE}`}
+              className="inline-flex items-center justify-center rounded-md border border-[#0f5c5c] px-5 py-2 text-[#0f5c5c] font-semibold hover:bg-[#0f5c5c]/5 transition"
+            >
+              Gọi ngay: {CONTACT_PHONE}
+            </a>
           </div>
         </div>
       )}

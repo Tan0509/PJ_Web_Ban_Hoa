@@ -1,14 +1,14 @@
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { createPortal } from 'react-dom';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
-import { formatVnd } from '@/lib/helpers/format';
 import { getOptimizedImageUrl } from '@/lib/helpers/image';
 import { useStore } from './StoreProvider';
 import ProductCard from './ProductCard';
+import { CONTACT_PHONE, ZALO_ORDER_LINK } from '@/lib/contact';
 
 // Dynamic import ZaloChatWidget (below-the-fold, only on product detail page)
 const ZaloChatWidget = dynamic(() => import('./ZaloChatWidget'), {
@@ -28,13 +28,8 @@ type Product = {
   specialOffers?: string; // Ưu đãi đặc biệt
 };
 
-function formatCurrency(value?: number) {
-  return typeof value === 'number' && !Number.isNaN(value) ? formatVnd(value) : '';
-}
-
 // UI/UX Redesign: ProductDetail with improved visual hierarchy, spacing, and modern design
 export default function ProductDetail({ product, related }: { product: Product; related?: Product[] }) {
-  const router = useRouter();
   const { addToCart, favorites, toggleFavorite, cart } = useStore();
   const [activeImg, setActiveImg] = useState(product.images?.[0] || '');
   const [note, setNote] = useState('');
@@ -53,23 +48,12 @@ export default function ProductDetail({ product, related }: { product: Product; 
     return cart.find((c) => (c.product._id?.toString?.() || c.product.slug || c.product.name) === key);
   }, [cart, product]);
 
-  const hasSale = typeof product.salePrice === 'number' && typeof product.price === 'number' && product.salePrice! < product.price!;
-  const finalPrice = hasSale ? product.salePrice : product.price;
-  const discountPercent = hasSale && typeof product.price === 'number' && typeof product.salePrice === 'number'
-    ? Math.round(100 - (product.salePrice / product.price) * 100)
-    : null;
-
   const gallery = product.images?.length ? product.images : [activeImg || ''];
   const safeGallery = gallery.filter(Boolean);
 
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  const handleCheckout = () => {
-    addToCart(product, note);
-    router.push('/checkout');
-  };
 
   const handleMainImageClick = () => {
     if (!safeGallery.length) return;
@@ -128,12 +112,7 @@ export default function ProductDetail({ product, related }: { product: Product; 
             ) : (
               <div className="h-full w-full flex items-center justify-center text-gray-400 text-lg">Không có ảnh</div>
             )}
-            {/* Discount Badge (if applicable) */}
-            {discountPercent && (
-              <div className="absolute top-4 right-4 bg-amber-400 text-white px-3 py-1.5 rounded-full text-sm font-bold shadow-lg z-10">
-                -{discountPercent}%
-              </div>
-            )}
+            {/* Discount badge hidden in contact-order mode */}
             {/* Click hint overlay */}
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-white drop-shadow-lg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -184,23 +163,9 @@ export default function ProductDetail({ product, related }: { product: Product; 
 
         {/* 2. Product Info (Right Column) */}
         <div className="space-y-6">
-          {/* Product Header: Name + Price */}
+          {/* Product Header */}
           <div className="space-y-3 pb-2">
             <h1 className="text-3xl md:text-4xl font-bold text-gray-900 leading-tight">{product.name}</h1>
-            
-            {/* Price Display with Visual Hierarchy */}
-            <div className="relative flex items-baseline gap-4 pt-2">
-              {hasSale && typeof product.price === 'number' && (
-                <span className="text-xl text-gray-400 line-through font-medium">
-                  {formatCurrency(product.price)}
-                </span>
-              )}
-              <div className="flex items-center gap-2">
-                <span className="text-3xl md:text-4xl font-bold text-[#0f5c5c]">
-                  {formatCurrency(finalPrice)}
-                </span>
-              </div>
-            </div>
           </div>
 
           {/* MÔ TẢ SẢN PHẨM (mô tả ngắn) */}
@@ -219,17 +184,17 @@ export default function ProductDetail({ product, related }: { product: Product; 
           <div className="border-t border-gray-200 pt-6 space-y-4">
             {/* Primary & Secondary CTAs */}
             <div className="flex flex-col sm:flex-row gap-3">
-              {/* Primary CTA: Thanh toán */}
-              <button
-                type="button"
-                onClick={handleCheckout}
+              <Link
+                href={ZALO_ORDER_LINK}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-lg bg-[#0f5c5c] px-6 py-3.5 text-white text-base font-bold shadow-lg hover:shadow-xl hover:bg-[#0c4d4d] transition-all duration-200"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                 </svg>
-                Thanh toán ngay
-              </button>
+                Liên hệ đặt hàng
+              </Link>
 
               {/* Secondary CTA: Thêm vào giỏ */}
               <button
@@ -243,6 +208,12 @@ export default function ProductDetail({ product, related }: { product: Product; 
                 Thêm vào giỏ
               </button>
             </div>
+            <a
+              href={`tel:${CONTACT_PHONE}`}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-lg border border-[#0f5c5c] text-[#0f5c5c] px-4 py-3 text-base font-semibold hover:bg-[#0f5c5c]/5 transition-all duration-200"
+            >
+              Gọi ngay: {CONTACT_PHONE}
+            </a>
 
             {/* Tertiary CTA: Yêu thích */}
             <button

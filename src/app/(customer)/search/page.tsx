@@ -7,8 +7,8 @@ type SearchParams = { q?: string };
 
 const PAGE_SIZE = 24;
 
-export default async function SearchPage({ searchParams }: { searchParams: Promise<SearchParams> | SearchParams }) {
-  const params = await Promise.resolve(searchParams);
+export default async function SearchPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  const params = await searchParams;
   const q = String(params.q || '').trim();
 
   if (!q) {
@@ -102,4 +102,3 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
     </div>
   );
 }
-

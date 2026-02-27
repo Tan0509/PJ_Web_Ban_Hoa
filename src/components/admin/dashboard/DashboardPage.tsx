@@ -6,7 +6,7 @@ import ChartRenderer from './components/ChartRenderer';
 import SummaryCards from './components/SummaryCards';
 import { ChartType, DateRange, MetricColorState, MetricKey } from './types/dashboard';
 import { DatePresetKey, DEFAULT_COLORS } from './utils/chartConfig';
-import { useBestSellingProduct, useCombinedSeries, useDefaultRange } from './hooks/useMetrics';
+import { useBestSellingProduct, useCombinedSeries, useDefaultRange, useVisitSummary } from './hooks/useMetrics';
 
 const DASHBOARD_FILTER_KEY = 'dashboardFilter';
 
@@ -135,6 +135,10 @@ export default function DashboardPage() {
   const { data: combinedSeries, loading: seriesLoading, error: seriesError } = useCombinedSeries(validRange);
   const filteredData = combinedSeries || [];
   const { formatted: bestSeller, productName, categoryName, orderCount, totalOrders } = useBestSellingProduct({ from: validRange.from, to: validRange.to });
+  const { data: visitSummary, loading: visitLoading, error: visitError } = useVisitSummary({
+    from: validRange.from,
+    to: validRange.to,
+  });
 
   const appliedColors = useMemo(
     () =>
@@ -175,6 +179,14 @@ export default function DashboardPage() {
         onDateRangeChange={handleDateRangeChange}
         activePreset={activePreset}
         onPresetClick={handlePresetClick}
+        visitSummary={{
+          rangeVisits: visitSummary?.rangeVisits || 0,
+          activeDays: visitSummary?.activeDays || 0,
+          totalDays: visitSummary?.totalDays || 0,
+          todayVisits: visitSummary?.todayVisits || 0,
+          loading: visitLoading,
+          error: visitError,
+        }}
       />
 
       <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">

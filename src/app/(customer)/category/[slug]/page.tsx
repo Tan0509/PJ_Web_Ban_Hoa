@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import CategoryClient from './CategoryClient';
 
 type PageProps = {
-  params: Promise<{ slug?: string }> | { slug?: string };
+  params: Promise<{ slug?: string }>;
 };
 
 /**
@@ -11,7 +11,7 @@ type PageProps = {
  * Quay lại cùng slug + params trong 30p → hiện cache, không gọi lại API.
  */
 export default async function CategoryPage({ params }: PageProps) {
-  const p = await Promise.resolve(params);
+  const p = await params;
   const slug = typeof p?.slug === 'string' ? p.slug : '';
   if (!slug) return notFound();
 

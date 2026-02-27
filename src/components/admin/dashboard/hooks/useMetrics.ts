@@ -23,6 +23,13 @@ type SeriesResult = {
   error: string | null;
 };
 
+type VisitSummary = {
+  rangeVisits: number;
+  activeDays: number;
+  totalDays: number;
+  todayVisits: number;
+};
+
 type RangeParams = { from: string; to: string; groupBy?: GroupBy };
 
 async function fetchMetric(endpoint: string, signal: AbortSignal) {
@@ -214,4 +221,41 @@ export function useBestSellingProduct(range: { from: string; to: string }): Best
     loading,
     error: error ?? null,
   };
+}
+
+export function useVisitSummary(range: { from: string; to: string }) {
+  const [data, setData] = useState<VisitSummary | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    async function run() {
+      try {
+        setLoading(true);
+        setError(null);
+        const params = new URLSearchParams({ from: range.from, to: range.to });
+        const res = await fetch(`/api/admin/visits/summary?${params}`, { signal: controller.signal });
+        if (!res.ok) throw new Error('Fetch error');
+        const json = await res.json();
+        const d = json?.data || {};
+        setData({
+          rangeVisits: Number(d.rangeVisits || 0),
+          activeDays: Number(d.activeDays || 0),
+          totalDays: Number(d.totalDays || 0),
+          todayVisits: Number(d.todayVisits || 0),
+        });
+      } catch (err: any) {
+        if (err?.name === 'AbortError') return;
+        setError(err?.message || 'Unknown error');
+        setData(null);
+      } finally {
+        setLoading(false);
+      }
+    }
+    run();
+    return () => controller.abort();
+  }, [range.from, range.to]);
+
+  return { data, loading, error };
 }

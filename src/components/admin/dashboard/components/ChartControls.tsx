@@ -20,6 +20,14 @@ type ChartControlsProps = {
   onDateRangeChange: (range: DateRange, options?: { clearPreset?: boolean }) => void;
   activePreset: DatePresetKey | null;
   onPresetClick: (preset: DatePresetKey) => void;
+  visitSummary?: {
+    rangeVisits: number;
+    activeDays: number;
+    totalDays: number;
+    todayVisits: number;
+    loading?: boolean;
+    error?: string | null;
+  };
 };
 
 const metricList: MetricKey[] = ['revenue', 'orders', 'users'];
@@ -44,6 +52,7 @@ export default function ChartControls({
   onDateRangeChange,
   activePreset,
   onPresetClick,
+  visitSummary,
 }: ChartControlsProps) {
   const isValidRange = new Date(dateRange.from) <= new Date(dateRange.to);
 
@@ -209,7 +218,7 @@ export default function ChartControls({
 
       <div className="flex flex-col gap-2">
         <div className="text-xs text-gray-500">Dữ liệu hiển thị</div>
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           {metricList.map((metric) => {
             const checked = selectedMetrics.includes(metric);
             const colorMode = colors[metric].mode;
@@ -265,6 +274,27 @@ export default function ChartControls({
               </div>
             );
           })}
+          <div className="border border-gray-200 rounded-md px-3 py-3 flex flex-col gap-2 min-h-[120px] bg-white">
+            <div className="text-sm text-gray-800">Lượt truy cập</div>
+            {visitSummary?.loading ? (
+              <div className="text-xs text-gray-500">Đang tải...</div>
+            ) : visitSummary?.error ? (
+              <div className="text-xs text-red-600">Không tải được dữ liệu truy cập</div>
+            ) : (
+              <>
+                <div className="text-xs text-gray-600">
+                  Số ngày có truy cập: <span className="font-semibold text-gray-900">{visitSummary?.activeDays ?? 0}</span>
+                  <span className="text-gray-400">/{visitSummary?.totalDays ?? 0}</span>
+                </div>
+                <div className="text-xs text-gray-600">
+                  Tổng lượt trong kỳ: <span className="font-semibold text-gray-900">{visitSummary?.rangeVisits ?? 0}</span>
+                </div>
+                <div className="text-xs text-gray-600">
+                  Hôm nay: <span className="font-semibold text-gray-900">{visitSummary?.todayVisits ?? 0}</span>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>

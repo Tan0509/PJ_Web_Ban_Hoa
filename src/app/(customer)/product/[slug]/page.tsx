@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import ProductClient from './ProductClient';
 
 type PageProps = {
-  params: Promise<{ slug?: string }> | { slug?: string };
+  params: Promise<{ slug?: string }>;
 };
 
 /**
@@ -10,7 +10,7 @@ type PageProps = {
  * Quay lại cùng slug trong 30p → hiện cache, không gọi lại API.
  */
 export default async function ProductPage({ params }: PageProps) {
-  const p = await Promise.resolve(params);
+  const p = await params;
   const slugRaw = p?.slug;
   if (!slugRaw || typeof slugRaw !== 'string') return notFound();
 

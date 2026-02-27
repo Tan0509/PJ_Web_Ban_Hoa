@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { signOut, useSession } from 'next-auth/react';
 
@@ -12,41 +12,9 @@ export default function UserMenu({ variant = 'desktop' }: Props) {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [hasPendingPayment, setHasPendingPayment] = useState(false);
 
   const isAuthed = status === 'authenticated' && !!session?.user;
   const displayName = session?.user?.name || session?.user?.email || 'Người dùng';
-
-  const shouldShowPendingBadge = useMemo(() => {
-    // Show "1" indicator (not a count) when there is at least 1 pending payment order
-    return isAuthed && hasPendingPayment;
-  }, [isAuthed, hasPendingPayment]);
-
-  // Lazy load: only fetch pending state when user opens the menu (avoids heavy /api/orders on every page load)
-  useEffect(() => {
-    if (!isAuthed) {
-      setHasPendingPayment(false);
-      return;
-    }
-    if (!open) return;
-
-    let mounted = true;
-    const load = async () => {
-      try {
-        const res = await fetch('/api/orders/pending', { cache: 'no-store' });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) return;
-        if (mounted) setHasPendingPayment(!!data?.hasPendingPayment);
-      } catch {
-        // ignore
-      }
-    };
-
-    load();
-    return () => {
-      mounted = false;
-    };
-  }, [isAuthed, open]);
 
   const handleClick = () => {
     if (!isAuthed) {
@@ -78,11 +46,6 @@ export default function UserMenu({ variant = 'desktop' }: Props) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.4} d="M15.75 7.5a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.4} d="M4.5 20.25a8.25 8.25 0 0115 0" />
             </svg>
-            {shouldShowPendingBadge ? (
-              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-[#f6c142] text-[#0f5c5c] text-[11px] leading-[18px] text-center px-1 font-bold">
-                1
-              </span>
-            ) : null}
           </span>
           <span>{isAuthed ? displayName : 'Đăng nhập'}</span>
         </button>
@@ -98,21 +61,6 @@ export default function UserMenu({ variant = 'desktop' }: Props) {
               className="w-full text-left px-4 py-2 text-sm hover:bg-white/10"
             >
               Thông tin cá nhân
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setOpen(false);
-                router.push('/orders');
-              }}
-              className="w-full text-left px-4 py-2 text-sm hover:bg-white/10 flex items-center justify-between gap-2"
-            >
-              <span>Đơn hàng của tôi</span>
-              {shouldShowPendingBadge ? (
-                <span className="min-w-[18px] h-[18px] rounded-full bg-[#f6c142] text-[#0f5c5c] text-[11px] leading-[18px] text-center px-1 font-bold">
-                  1
-                </span>
-              ) : null}
             </button>
             <button
               type="button"
@@ -139,11 +87,6 @@ export default function UserMenu({ variant = 'desktop' }: Props) {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.4} d="M15.75 7.5a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.4} d="M4.5 20.25a8.25 8.25 0 0115 0" />
           </svg>
-          {shouldShowPendingBadge ? (
-            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-[#0f5c5c] text-white text-[11px] leading-[18px] text-center px-1 font-bold">
-              1
-            </span>
-          ) : null}
         </span>
         <span className="leading-none">{isAuthed ? displayName : 'Đăng nhập'}</span>
       </button>
@@ -156,18 +99,6 @@ export default function UserMenu({ variant = 'desktop' }: Props) {
             className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50"
           >
             Thông tin cá nhân
-          </button>
-          <button
-            type="button"
-            onClick={() => router.push('/orders')}
-            className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center justify-between gap-2"
-          >
-            <span>Đơn hàng của tôi</span>
-            {shouldShowPendingBadge ? (
-              <span className="min-w-[18px] h-[18px] rounded-full bg-[#0f5c5c] text-white text-[11px] leading-[18px] text-center px-1 font-bold">
-                1
-              </span>
-            ) : null}
           </button>
           <button
             type="button"

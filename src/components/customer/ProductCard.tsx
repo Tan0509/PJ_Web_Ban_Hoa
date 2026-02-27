@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useMemo } from 'react';
-import { formatVnd } from '@/lib/helpers/format';
 import { getOptimizedImageUrl } from '@/lib/helpers/image';
 import { useStore } from './StoreProvider';
 
@@ -17,10 +16,6 @@ type Product = {
   slug?: string;
 };
 
-function formatCurrency(value?: number) {
-  return typeof value === 'number' && !Number.isNaN(value) ? formatVnd(value) : '';
-}
-
 export default function ProductCard({ product }: { product: Product }) {
   const { toggleFavorite, addToCart, favorites } = useStore();
 
@@ -29,7 +24,7 @@ export default function ProductCard({ product }: { product: Product }) {
     return favorites.some((p) => (p._id?.toString?.() || p.slug || p.name) === key);
   }, [favorites, product]);
 
-  const { bestPrice, hasSale, discountPercent } = useMemo(() => {
+  const { discountPercent } = useMemo(() => {
     const price = product.price;
     const salePrice = product.salePrice;
     const explicit = typeof product.discountPercent === 'number' ? product.discountPercent : null;
@@ -38,11 +33,7 @@ export default function ProductCard({ product }: { product: Product }) {
         ? Math.round(100 - (salePrice / price) * 100)
         : null;
     const discount = explicit ?? computed;
-    const hasSalePrice = typeof price === 'number' && typeof salePrice === 'number' && salePrice < price;
-    const finalPrice = hasSalePrice ? salePrice : price;
     return {
-      bestPrice: finalPrice,
-      hasSale: hasSalePrice,
       discountPercent: discount !== null && discount > 0 ? discount : null,
     };
   }, [product]);
@@ -67,11 +58,6 @@ export default function ProductCard({ product }: { product: Product }) {
           ) : (
             <div className="h-full w-full flex items-center justify-center text-gray-400 text-sm">Không có ảnh</div>
           )}
-          {discountPercent !== null && (
-            <div className="absolute left-3 top-3 rounded-full bg-amber-400 px-3 py-1 text-xs font-bold text-white shadow">
-              -{discountPercent}%
-            </div>
-          )}
         </div>
       </Link>
 
@@ -82,10 +68,7 @@ export default function ProductCard({ product }: { product: Product }) {
 
         <div className="flex items-start justify-between gap-3">
           <div className="flex flex-col leading-tight">
-            {hasSale && typeof product.price === 'number' && (
-              <span className="text-sm text-gray-400 line-through">{formatCurrency(product.price)}</span>
-            )}
-            <span className="text-lg font-bold text-gray-900">{formatCurrency(bestPrice)}</span>
+            <span className="text-base font-semibold text-[#0f5c5c]">Xem chi tiết</span>
           </div>
 
           <div className="flex items-center gap-2 text-gray-500">

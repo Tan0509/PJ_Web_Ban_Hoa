@@ -1,10 +1,11 @@
 import Link from 'next/link';
+import { FACEBOOK_CONTACT_LINK, CONTACT_PHONE, ZALO_ORDER_LINK } from '@/lib/contact';
 
 const contact = [
   { icon: '📍', text: '196/3, Kp 2, Phường Long Khánh, Đồng Nai' },
-  { icon: '☎️', text: 'Phone: 0987.654.321' },
-  { icon: '📞', text: 'Zalo: 0987.654.321' },
-  { icon: '✉️', text: 'nguyenhoangducthuan1605@gmail.com' },
+  { icon: '☎️', text: `Phone: ${CONTACT_PHONE}` },
+  { icon: '📞', text: `Zalo: ${CONTACT_PHONE}` },
+  { icon: '✉️', text: 'bichny22t31@gmail.com' },
 ];
 
 const brandLinks = [
@@ -23,10 +24,8 @@ const supportLinks = [
 ];
 
 const socials = [
-  { label: 'Facebook', href: 'https://facebook.com', char: 'f' },
-  { label: 'Instagram', href: 'https://instagram.com', char: 'in' },
-  { label: 'Google', href: 'https://google.com', char: 'G' },
-  { label: 'Twitter', href: 'https://twitter.com', char: 't' },
+  { label: 'Facebook', href: FACEBOOK_CONTACT_LINK, char: 'f' },
+  { label: 'Zalo', href: ZALO_ORDER_LINK, char: 'Z' },
 ];
 
 export default function CustomerFooter() {
@@ -84,6 +83,8 @@ export default function CustomerFooter() {
                 <Link
                   key={s.label}
                   href={s.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-white flex items-center justify-center text-[#0f5c5c] font-semibold text-base sm:text-lg shadow-sm"
                 >
                   {s.char}
