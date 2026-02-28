@@ -9,11 +9,12 @@ export const revalidate = 300;
 export async function GET() {
   await connectMongo();
   const cats = await Category.find({ active: { $ne: false } })
-    .select('name slug icon order menuOrder active')
+    .select('name slug icon parentId order menuOrder active')
     .sort({ order: 1, name: 1 })
     .lean();
+  const topLevel = cats.filter((c: any) => !c.parentId);
   return NextResponse.json(
-    { success: true, data: cats },
+    { success: true, data: topLevel },
     {
       headers: {
         'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',

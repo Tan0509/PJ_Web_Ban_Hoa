@@ -26,7 +26,7 @@ type ProductItem = {
   specialOffers?: string; // Ưu đãi đặc biệt
 };
 
-type CategoryLite = { _id: string; name: string; slug?: string };
+type CategoryLite = { _id: string; name: string; slug?: string; parentId?: string };
 
 type FetchResponse = {
   items: ProductItem[];
@@ -157,22 +157,6 @@ function ImageDrop({ value, onChange, single }: ImageDropProps) {
   );
 }
 
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
-}
-
-function formatWithDots(value: string) {
-  const digits = value.replace(/\D+/g, '');
-  if (!digits) return '';
-  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-}
-
-function parseNumber(value: string) {
-  const digits = value.replace(/\D+/g, '');
-  const num = Number(digits || 0);
-  return Number.isNaN(num) ? 0 : num;
-}
-
 export default function AdminProducts() {
   const { addToast } = useToast();
   const [items, setItems] = useState<ProductItem[]>([]);
@@ -192,9 +176,6 @@ export default function AdminProducts() {
   const [form, setForm] = useState({
     name: '',
     slug: '',
-    price: '',
-    saleType: 'amount' as 'amount' | 'percent',
-    saleValue: '',
     metaDescription: '',
     description: '',
     mainImage: '',
@@ -273,9 +254,6 @@ export default function AdminProducts() {
     setForm({
       name: '',
       slug: '',
-      price: '',
-      saleType: 'amount',
-      saleValue: '',
       metaDescription: '',
       description: '',
       mainImage: '',
@@ -323,24 +301,9 @@ export default function AdminProducts() {
       }
 
       setEditing(full);
-      const priceNum = full.price ?? 0;
-      const salePriceNum = typeof full.salePrice === 'number' ? full.salePrice : undefined;
-      const hasStoredInput = full.saleInputType && (full.saleInputValue !== undefined && full.saleInputValue !== null);
-      let saleType: 'amount' | 'percent' = 'amount';
-      let saleValue = '';
-      if (hasStoredInput && (full.saleInputType === 'amount' || full.saleInputType === 'percent')) {
-        saleType = full.saleInputType;
-        saleValue = full.saleInputValue != null ? formatWithDots(String(full.saleInputValue)) : '';
-      } else if (typeof salePriceNum === 'number' && priceNum > 0 && priceNum > salePriceNum) {
-        saleType = 'amount';
-        saleValue = formatWithDots(String(priceNum - salePriceNum));
-      }
       setForm({
         name: full.name || '',
         slug: full.slug || '',
-        price: priceNum ? formatWithDots(String(priceNum)) : '',
-        saleType,
-        saleValue,
         metaDescription: full.metaDescription || '',
         description: full.description || '',
         mainImage: full.images?.[0] || '',
@@ -368,34 +331,13 @@ export default function AdminProducts() {
     setFieldErrors({}); // Clear previous errors
     
     const payloadImages = [form.mainImage, ...(form.galleryUrls || [])].filter(Boolean);
-    const priceNum = parseNumber(form.price);
-    let salePriceNum: number | undefined;
-    let saleInputType: 'amount' | 'percent' | undefined;
-    let saleInputValue: number | undefined;
-    if (form.saleValue) {
-      if (form.saleType === 'amount') {
-        const discountAmount = parseNumber(form.saleValue);
-        salePriceNum = Math.max(0, priceNum - discountAmount);
-        saleInputType = 'amount';
-        saleInputValue = discountAmount;
-      } else {
-        const percent = parseNumber(form.saleValue);
-        salePriceNum = Math.max(0, priceNum - (priceNum * percent) / 100);
-        saleInputType = 'percent';
-        saleInputValue = percent;
-      }
-    } else {
-      salePriceNum = undefined;
-      saleInputType = undefined;
-      saleInputValue = undefined;
-    }
     const payload = {
       name: form.name.trim(),
       slug: form.slug.trim() || slugify(form.name),
-      price: priceNum || 0,
-      salePrice: salePriceNum,
-      saleInputType,
-      saleInputValue,
+      price: editing?.price || 0,
+      salePrice: undefined,
+      saleInputType: undefined,
+      saleInputValue: undefined,
       metaDescription: form.metaDescription.trim(),
       description: form.description.trim(),
       images: payloadImages,
@@ -490,6 +432,34 @@ export default function AdminProducts() {
     [categories]
   );
 
+  const categoryOptions = useMemo(() => {
+    const parents = categories
+      .filter((c) => !c.parentId)
+      .sort((a, b) => a.name.localeCompare(b.name));
+    const childMap = new Map<string, CategoryLite[]>();
+    for (const c of categories) {
+      if (!c.parentId) continue;
+      const key = String(c.parentId);
+      const list = childMap.get(key) || [];
+      list.push(c);
+      childMap.set(key, list);
+    }
+    for (const [key, list] of childMap.entries()) {
+      list.sort((a, b) => a.name.localeCompare(b.name));
+      childMap.set(key, list);
+    }
+
+    const flat: Array<CategoryLite & { label: string; level: number }> = [];
+    for (const p of parents) {
+      flat.push({ ...p, label: p.name, level: 0 });
+      const children = childMap.get(p._id) || [];
+      for (const c of children) {
+        flat.push({ ...c, label: `— ${c.name}`, level: 1 });
+      }
+    }
+    return flat;
+  }, [categories]);
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -534,9 +504,9 @@ export default function AdminProducts() {
             className="border border-gray-200 rounded-md px-3 h-11 text-sm bg-white"
           >
             <option value="">Tất cả danh mục</option>
-            {categories.map((c) => (
+            {categoryOptions.map((c) => (
               <option key={c._id} value={c._id}>
-                {c.name}
+                {c.label}
               </option>
             ))}
           </select>
@@ -548,7 +518,6 @@ export default function AdminProducts() {
               <tr className="border-b border-gray-200 text-gray-600">
                 <th className="py-3 px-2">Ảnh</th>
                 <th className="py-3 px-2">Tên</th>
-                <th className="py-3 px-2">Giá</th>
                 <th className="py-3 px-2">Danh mục</th>
                 <th className="py-3 px-2">Trạng thái</th>
                 <th className="py-3 px-2">Ngày tạo</th>
@@ -562,19 +531,19 @@ export default function AdminProducts() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="py-6 text-center text-gray-500">
+                  <td colSpan={6} className="py-6 text-center text-gray-500">
                     Đang tải...
                   </td>
                 </tr>
               ) : error ? (
                 <tr>
-                  <td colSpan={7} className="py-6 text-center text-red-600">
+                  <td colSpan={6} className="py-6 text-center text-red-600">
                     {error}
                   </td>
                 </tr>
               ) : items.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-6 text-center text-gray-500">
+                  <td colSpan={6} className="py-6 text-center text-gray-500">
                     Không có sản phẩm.
                   </td>
                 </tr>
@@ -595,12 +564,6 @@ export default function AdminProducts() {
                     <td className="py-3 px-2">
                       <div className="font-medium text-gray-900">{item.name}</div>
                       <div className="text-xs text-gray-500">{item.slug}</div>
-                    </td>
-                    <td className="py-3 px-2">
-                      <div className="text-gray-900 font-semibold">{formatCurrency(item.price)}</div>
-                      {item.salePrice ? (
-                        <div className="text-xs text-amber-600">{formatCurrency(item.salePrice)}</div>
-                      ) : null}
                     </td>
                     <td className="py-3 px-2 text-gray-700">
                       {categoryMap[item.categoryId || item.categoryIds?.[0] || ''] || '—'}
@@ -686,7 +649,6 @@ export default function AdminProducts() {
                     <div className="text-lg font-semibold text-gray-900">
                       {editing ? 'Sửa sản phẩm' : 'Thêm sản phẩm'}
                     </div>
-                    <div className="text-sm text-gray-500">Product admin CRUD – do not affect other admin modules</div>
                   </div>
                   <button onClick={closeForm} className="text-gray-500 hover:text-gray-700 text-sm">
                     Đóng
@@ -719,57 +681,6 @@ export default function AdminProducts() {
                         placeholder="Tự động sinh từ tên (có thể sửa thủ công)"
                         required
                       />
-                    </div>
-                  </div>
-
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs text-gray-500">Giá</label>
-                      <input
-                        inputMode="numeric"
-                        value={form.price}
-                        onChange={(e) => setForm((prev) => ({ ...prev, price: formatWithDots(e.target.value) }))}
-                        className="border border-gray-200 rounded-md px-3 h-11 text-sm bg-white"
-                        required
-                      />
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <label className="text-xs text-gray-500">Giá khuyến mãi</label>
-                      <div className="grid grid-cols-2 gap-2">
-                        <select
-                          value={form.saleType}
-                          onChange={(e) => setForm((prev) => ({ ...prev, saleType: e.target.value as any, saleValue: '' }))}
-                          className="border border-gray-200 rounded-md px-3 h-11 text-sm bg-white"
-                        >
-                          <option value="amount">Giảm theo số tiền</option>
-                          <option value="percent">Giảm theo %</option>
-                        </select>
-                        <input
-                          inputMode="numeric"
-                          value={form.saleValue}
-                          onChange={(e) => setForm((prev) => ({ ...prev, saleValue: formatWithDots(e.target.value) }))}
-                          className="border border-gray-200 rounded-md px-3 h-11 text-sm bg-white"
-                          placeholder={form.saleType === 'amount' ? 'VD: 20.000' : 'VD: 5'}
-                        />
-                      </div>
-                      {form.saleValue && form.price ? (
-                        <div className="text-xs text-gray-600">
-                          Giá sau giảm:{' '}
-                          <span className="font-semibold">
-                            {formatCurrency(
-                              form.saleType === 'amount'
-                                ? Math.max(0, parseNumber(form.price) - parseNumber(form.saleValue))
-                                : Math.max(
-                                    0,
-                                    parseNumber(form.price) -
-                                      (parseNumber(form.price) * parseNumber(form.saleValue)) / 100
-                                  )
-                            )}
-                          </span>
-                        </div>
-                      ) : (
-                        <div className="text-xs text-gray-500">Tuỳ chọn</div>
-                      )}
                     </div>
                   </div>
 
@@ -851,7 +762,7 @@ export default function AdminProducts() {
                         {categories.length === 0 ? (
                           <div className="text-gray-400 text-xs">Chưa có danh mục</div>
                         ) : (
-                          categories.map((c) => (
+                          categoryOptions.map((c) => (
                             <label key={c._id} className="flex items-center gap-2 py-1 hover:bg-gray-50 cursor-pointer">
                               <input
                                 type="checkbox"
@@ -867,7 +778,9 @@ export default function AdminProducts() {
                                 }}
                                 className="accent-emerald-600"
                               />
-                              <span className="text-sm text-gray-800">{c.name}</span>
+                              <span className={`text-sm ${c.level === 1 ? 'text-gray-600 pl-4' : 'text-gray-800 font-medium'}`}>
+                                {c.label}
+                              </span>
                             </label>
                           ))
                         )}

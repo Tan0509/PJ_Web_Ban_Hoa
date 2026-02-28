@@ -8,6 +8,7 @@ type CategoryPayload = {
   name: string;
   slug: string;
   icon?: string;
+  parentId?: string;
   order?: number;
   menuOrder?: number;
   description?: string;
@@ -47,10 +48,10 @@ async function listCategories(query: NextApiRequest['query']): Promise<ListRespo
 
   const total = await Category.countDocuments(filter);
   const items = await Category.find(filter)
-    .sort({ order: 1, createdAt: -1 })
+    .sort({ parentId: 1, order: 1, name: 1, createdAt: -1 })
     .skip((pageNum - 1) * limitNum)
     .limit(limitNum)
-    .select('name slug icon order menuOrder description active createdAt');
+    .select('name slug icon parentId order menuOrder description active createdAt');
 
   return { items, total, page: pageNum, limit: limitNum };
 }
@@ -60,9 +61,11 @@ function escapeRegex(s: string) {
 }
 
 async function createCategory(body: CategoryPayload) {
-  const { name, slug, icon, order, menuOrder, description, active } = body;
+  const { name, slug, icon, parentId, order, menuOrder, description, active } = body;
   const nameTrim = typeof name === 'string' ? name.trim() : '';
   const slugTrim = typeof slug === 'string' ? slug.trim() : '';
+  const parentIdTrim = typeof parentId === 'string' ? parentId.trim() : '';
+  const isChild = Boolean(parentIdTrim);
   const orderNum = Number(order);
   const menuOrderNum = Number(menuOrder);
 
@@ -76,17 +79,17 @@ async function createCategory(body: CategoryPayload) {
     (err as any).status = 400;
     throw err;
   }
-  if (!icon || !String(icon).trim()) {
+  if (!isChild && (!icon || !String(icon).trim())) {
     const err = new Error('Vui lòng thêm ảnh danh mục');
     (err as any).status = 400;
     throw err;
   }
-  if (Number.isNaN(orderNum) || orderNum < 0) {
+  if (!isChild && (Number.isNaN(orderNum) || orderNum < 0)) {
     const err = new Error('Vui lòng nhập thứ tự hiển thị (section) hợp lệ');
     (err as any).status = 400;
     throw err;
   }
-  if (Number.isNaN(menuOrderNum) || menuOrderNum < 0) {
+  if (!isChild && (Number.isNaN(menuOrderNum) || menuOrderNum < 0)) {
     const err = new Error('Vui lòng nhập thứ tự menu hợp lệ');
     (err as any).status = 400;
     throw err;
@@ -108,26 +111,38 @@ async function createCategory(body: CategoryPayload) {
     throw err;
   }
 
-  const orderExists = await Category.findOne({ order: orderNum });
-  if (orderExists) {
-    const err = new Error(`Thứ tự hiển thị (section) "${orderNum}" đã được sử dụng, vui lòng chọn số khác`);
-    (err as any).status = 409;
-    throw err;
+  if (parentIdTrim) {
+    const parent = await Category.findById(parentIdTrim).select('_id').lean();
+    if (!parent) {
+      const err = new Error('Danh mục cha không tồn tại');
+      (err as any).status = 400;
+      throw err;
+    }
   }
 
-  const menuOrderExists = await Category.findOne({ menuOrder: menuOrderNum });
-  if (menuOrderExists) {
-    const err = new Error(`Thứ tự menu "${menuOrderNum}" đã được sử dụng, vui lòng chọn số khác`);
-    (err as any).status = 409;
-    throw err;
+  if (!isChild) {
+    const orderExists = await Category.findOne({ order: orderNum, parentId: { $in: [null, ''] } });
+    if (orderExists) {
+      const err = new Error(`Thứ tự hiển thị (section) "${orderNum}" đã được sử dụng, vui lòng chọn số khác`);
+      (err as any).status = 409;
+      throw err;
+    }
+
+    const menuOrderExists = await Category.findOne({ menuOrder: menuOrderNum, parentId: { $in: [null, '' ] } });
+    if (menuOrderExists) {
+      const err = new Error(`Thứ tự menu "${menuOrderNum}" đã được sử dụng, vui lòng chọn số khác`);
+      (err as any).status = 409;
+      throw err;
+    }
   }
 
   return Category.create({
     name: nameTrim,
     slug: slugTrim,
-    icon: String(icon).trim(),
-    order: orderNum,
-    menuOrder: menuOrderNum,
+    icon: icon ? String(icon).trim() : undefined,
+    parentId: parentIdTrim || undefined,
+    order: Number.isNaN(orderNum) ? 0 : orderNum,
+    menuOrder: Number.isNaN(menuOrderNum) ? 0 : menuOrderNum,
     description,
     active: typeof active === 'boolean' ? active : true,
   });

@@ -16,9 +16,11 @@ function escapeRegex(s: string) {
 }
 
 async function updateCategory(id: string, body: any) {
-  const { name, slug, icon, order, menuOrder, description, active } = body || {};
+  const { name, slug, icon, parentId, order, menuOrder, description, active } = body || {};
   const nameTrim = typeof name === 'string' ? name.trim() : '';
   const slugTrim = typeof slug === 'string' ? slug.trim() : '';
+  const parentIdTrim = typeof parentId === 'string' ? parentId.trim() : '';
+  const isChild = Boolean(parentIdTrim);
   if (!nameTrim) {
     const err = new Error('Vui lòng nhập tên danh mục');
     (err as any).status = 400;
@@ -48,8 +50,24 @@ async function updateCategory(id: string, body: any) {
   }
 
   const orderNum = Number(order);
-  if (!Number.isNaN(orderNum) && orderNum >= 0) {
-    const orderExists = await Category.findOne({ order: orderNum, _id: { $ne: id } });
+  const menuOrderNum = Number(menuOrder);
+
+  if (parentIdTrim) {
+    if (parentIdTrim === id) {
+      const err = new Error('Không thể chọn chính danh mục này làm danh mục cha');
+      (err as any).status = 400;
+      throw err;
+    }
+    const parent = await Category.findById(parentIdTrim).select('_id').lean();
+    if (!parent) {
+      const err = new Error('Danh mục cha không tồn tại');
+      (err as any).status = 400;
+      throw err;
+    }
+  }
+
+  if (!isChild && !Number.isNaN(orderNum) && orderNum >= 0) {
+    const orderExists = await Category.findOne({ order: orderNum, _id: { $ne: id }, parentId: { $in: [null, ''] } });
     if (orderExists) {
       const err = new Error(`Thứ tự hiển thị (section) "${orderNum}" đã được sử dụng, vui lòng chọn số khác`);
       (err as any).status = 409;
@@ -57,9 +75,8 @@ async function updateCategory(id: string, body: any) {
     }
   }
 
-  const menuOrderNum = Number(menuOrder);
-  if (!Number.isNaN(menuOrderNum) && menuOrderNum >= 0) {
-    const menuOrderExists = await Category.findOne({ menuOrder: menuOrderNum, _id: { $ne: id } });
+  if (!isChild && !Number.isNaN(menuOrderNum) && menuOrderNum >= 0) {
+    const menuOrderExists = await Category.findOne({ menuOrder: menuOrderNum, _id: { $ne: id }, parentId: { $in: [null, ''] } });
     if (menuOrderExists) {
       const err = new Error(`Thứ tự menu "${menuOrderNum}" đã được sử dụng, vui lòng chọn số khác`);
       (err as any).status = 409;
@@ -74,6 +91,7 @@ async function updateCategory(id: string, body: any) {
   };
   if (description !== undefined) payload.description = description;
   if (icon !== undefined) payload.icon = icon;
+  payload.parentId = parentIdTrim || undefined;
   if (!Number.isNaN(orderNum)) payload.order = orderNum;
   if (!Number.isNaN(menuOrderNum)) payload.menuOrder = menuOrderNum;
   const updated = await Category.findByIdAndUpdate(id, payload, { new: true });
@@ -101,6 +119,12 @@ export default async function handler(
     }
 
     if (req.method === 'DELETE') {
+      const childCount = await Category.countDocuments({ parentId: String(id) });
+      if (childCount > 0) {
+        return res.status(400).json({
+          message: 'Không thể xóa danh mục cha đang có danh mục con. Vui lòng xóa danh mục con trước.',
+        });
+      }
       const doc = await Category.findById(id).lean();
       if (!doc) {
         const err = new Error('Not found');

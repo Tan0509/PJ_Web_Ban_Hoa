@@ -32,7 +32,6 @@ type Product = {
 export default function ProductDetail({ product, related }: { product: Product; related?: Product[] }) {
   const { addToCart, favorites, toggleFavorite, cart } = useStore();
   const [activeImg, setActiveImg] = useState(product.images?.[0] || '');
-  const [note, setNote] = useState('');
   const [showImageModal, setShowImageModal] = useState(false);
   const [modalImage, setModalImage] = useState('');
   const [modalIndex, setModalIndex] = useState(0);
@@ -182,59 +181,57 @@ export default function ProductDetail({ product, related }: { product: Product; 
 
           {/* Product Actions: CTA Section */}
           <div className="border-t border-gray-200 pt-6 space-y-4">
-            {/* Primary & Secondary CTAs */}
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Link
-                href={ZALO_ORDER_LINK}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-lg bg-[#0f5c5c] px-6 py-3.5 text-white text-base font-bold shadow-lg hover:shadow-xl hover:bg-[#0c4d4d] transition-all duration-200"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                </svg>
-                Liên hệ đặt hàng
-              </Link>
-
-              {/* Secondary CTA: Thêm vào giỏ */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <button
                 type="button"
-                onClick={() => addToCart(product, note)}
-                className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-lg bg-white border-2 border-[#0f5c5c] text-[#0f5c5c] px-6 py-3.5 text-base font-semibold hover:bg-[#0f5c5c]/5 transition-all duration-200"
+                onClick={() => addToCart(product, '')}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-white border-2 border-[#0f5c5c] text-[#0f5c5c] px-6 py-3.5 text-base font-semibold hover:bg-[#0f5c5c]/5 transition-all duration-200"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
-                Thêm vào giỏ
+                Thêm vào giỏ hàng
               </button>
-            </div>
-            <a
-              href={`tel:${CONTACT_PHONE}`}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-lg border border-[#0f5c5c] text-[#0f5c5c] px-4 py-3 text-base font-semibold hover:bg-[#0f5c5c]/5 transition-all duration-200"
-            >
-              Gọi ngay: {CONTACT_PHONE}
-            </a>
 
-            {/* Tertiary CTA: Yêu thích */}
-            <button
-              type="button"
-              onClick={() => toggleFavorite(product)}
-              className={`w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-lg border px-4 py-3 text-base font-medium transition-all duration-200 ${
-                isFavorite
-                  ? 'border-[#0f5c5c] text-[#0f5c5c] bg-[#0f5c5c]/5'
-                  : 'border-gray-300 text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill={isFavorite ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M21 8.25c0-2.485-2.046-4.5-4.571-4.5-1.63 0-3.058.936-3.8 2.292-.742-1.356-2.17-2.292-3.8-2.292C6.304 3.75 4.25 5.765 4.25 8.25c0 4.28 7.371 9.189 8.371 9.939.25.189.58.189.83 0 1-0.75 8.371-5.659 8.371-9.939Z"
-                />
-              </svg>
-              {isFavorite ? 'Đã yêu thích' : 'Thêm vào yêu thích'}
-            </button>
+              <button
+                type="button"
+                onClick={() => toggleFavorite(product)}
+                className={`w-full inline-flex items-center justify-center gap-2 rounded-lg border px-4 py-3 text-base font-medium transition-all duration-200 ${
+                  isFavorite
+                    ? 'border-[#0f5c5c] text-[#0f5c5c] bg-[#0f5c5c]/5'
+                    : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill={isFavorite ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M21 8.25c0-2.485-2.046-4.5-4.571-4.5-1.63 0-3.058.936-3.8 2.292-.742-1.356-2.17-2.292-3.8-2.292C6.304 3.75 4.25 5.765 4.25 8.25c0 4.28 7.371 9.189 8.371 9.939.25.189.58.189.83 0 1-0.75 8.371-5.659 8.371-9.939Z"
+                  />
+                </svg>
+                {isFavorite ? 'Đã yêu thích' : 'Thêm vào yêu thích'}
+              </button>
+
+              <a
+                href={`tel:${CONTACT_PHONE}`}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-lg border border-[#0f5c5c] text-[#0f5c5c] px-4 py-3 text-base font-semibold hover:bg-[#0f5c5c]/5 transition-all duration-200"
+              >
+                Gọi ngay: {CONTACT_PHONE}
+              </a>
+
+              <Link
+                href={ZALO_ORDER_LINK}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-[#0f5c5c] px-4 py-3 text-white text-base font-bold shadow-lg hover:shadow-xl hover:bg-[#0c4d4d] transition-all duration-200"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                </svg>
+                Liên hệ đặt hoa
+              </Link>
+            </div>
 
             {/* Cart Status (if item already in cart) */}
             {cartItem && (
@@ -248,18 +245,6 @@ export default function ProductDetail({ product, related }: { product: Product; 
                 </span>
               </div>
             )}
-          </div>
-
-          {/* Purchase Note Section */}
-          <div className="border-t border-gray-200 pt-6 space-y-2">
-            <label className="text-sm font-semibold text-gray-800">Ghi chú khi mua hàng (tùy chọn)</label>
-            <textarea
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="Nhập ghi chú cho đơn hàng..."
-              className="w-full rounded-lg border-2 border-gray-200 px-4 py-3 text-sm text-gray-700 focus:outline-none focus:border-[#0f5c5c] focus:ring-2 focus:ring-[#0f5c5c]/20 resize-none transition-colors"
-              rows={3}
-            />
           </div>
 
           {/* Lưu ý Section (if exists) */}

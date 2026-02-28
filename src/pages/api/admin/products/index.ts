@@ -12,7 +12,7 @@ type ListResponse = {
   total: number;
   page: number;
   limit: number;
-  categories: { _id: string; name: string; slug?: string }[];
+  categories: { _id: string; name: string; slug?: string; parentId?: string }[];
 };
 
 type ErrorResponse = { 
@@ -103,8 +103,8 @@ export default async function handler(
           .lean());
     // Lite list payload reduces response size; full data still available via /api/admin/products/[id]
 
-    const categories = await Category.find({}, 'name slug')
-      .sort({ name: 1 })
+    const categories = await Category.find({}, 'name slug parentId order')
+      .sort({ order: 1, name: 1 })
       .lean();
 
     return res.status(200).json({
@@ -112,7 +112,12 @@ export default async function handler(
       total,
       page: pageNum,
       limit: limitNum,
-      categories: categories.map((c: any) => ({ _id: String(c._id), name: c.name, slug: c.slug })),
+      categories: categories.map((c: any) => ({
+        _id: String(c._id),
+        name: c.name,
+        slug: c.slug,
+        parentId: c.parentId ? String(c.parentId) : undefined,
+      })),
     });
   }
 

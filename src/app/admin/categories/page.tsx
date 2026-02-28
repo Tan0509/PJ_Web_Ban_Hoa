@@ -13,6 +13,7 @@ type CategoryItem = {
   name: string;
   slug: string;
   icon?: string;
+  parentId?: string;
   order?: number;
   menuOrder?: number;
   description?: string;
@@ -27,7 +28,7 @@ type FetchResponse = {
   limit: number;
 };
 
-const pageSize = 10;
+const pageSize = 200;
 
 function formatDate(value?: string) {
   if (!value) return '—';
@@ -49,10 +50,12 @@ export default function AdminCategories() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<CategoryItem | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [expandedParents, setExpandedParents] = useState<Record<string, boolean>>({});
   const [form, setForm] = useState({
     name: '',
     slug: '',
     icon: '',
+    parentId: '',
     order: 0,
     menuOrder: 0,
     active: true,
@@ -82,7 +85,17 @@ export default function AdminCategories() {
         throw new Error(body?.message || 'Fetch error');
       }
       const data: FetchResponse = await res.json();
-      setItems(data.items || []);
+      const nextItems = data.items || [];
+      setItems(nextItems);
+      setExpandedParents((prev) => {
+        const next = { ...prev };
+        nextItems
+          .filter((x) => !x.parentId)
+          .forEach((p) => {
+            if (next[p._id] === undefined) next[p._id] = true;
+          });
+        return next;
+      });
       setTotal(data.total || 0);
     } catch (err: any) {
       setError(err?.message || 'Lỗi tải dữ liệu');
@@ -102,6 +115,7 @@ export default function AdminCategories() {
       name: '',
       slug: '',
       icon: '',
+      parentId: '',
       order: 0,
       menuOrder: 0,
       active: true,
@@ -152,6 +166,7 @@ export default function AdminCategories() {
       name: item.name || '',
       slug: item.slug || '',
       icon: item.icon || '',
+      parentId: item.parentId || '',
       order: item.order ?? 0,
       menuOrder: item.menuOrder ?? 0,
       active: item.active ?? true,
@@ -170,6 +185,7 @@ export default function AdminCategories() {
       name: form.name.trim(),
       slug: form.slug.trim() || slugify(form.name),
       icon: form.icon.trim() || undefined,
+      parentId: form.parentId || undefined,
       order: Number(form.order),
       menuOrder: Number(form.menuOrder),
       active: form.active,
@@ -185,15 +201,15 @@ export default function AdminCategories() {
     }
 
     if (!editing) {
-      if (!payload.icon) {
+      if (!payload.parentId && !payload.icon) {
         addToast('Vui lòng thêm ảnh danh mục', 'error');
         return;
       }
-      if (Number.isNaN(payload.order) || payload.order < 0) {
+      if (!payload.parentId && (Number.isNaN(payload.order) || payload.order < 0)) {
         addToast('Vui lòng nhập thứ tự hiển thị (section) hợp lệ', 'error');
         return;
       }
-      if (Number.isNaN(payload.menuOrder) || payload.menuOrder < 0) {
+      if (!payload.parentId && (Number.isNaN(payload.menuOrder) || payload.menuOrder < 0)) {
         addToast('Vui lòng nhập thứ tự menu hợp lệ', 'error');
         return;
       }
@@ -218,6 +234,31 @@ export default function AdminCategories() {
       addToast(err?.message || 'Lỗi lưu danh mục', 'error');
     }
   };
+
+  const parents = useMemo(
+    () => {
+      const idSet = new Set(items.map((x) => x._id));
+      return items
+        .filter((x) => !x.parentId || !idSet.has(String(x.parentId)))
+        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.name.localeCompare(b.name));
+    },
+    [items]
+  );
+  const childMap = useMemo(() => {
+    const map = new Map<string, CategoryItem[]>();
+    for (const item of items) {
+      if (!item.parentId) continue;
+      const key = String(item.parentId);
+      const current = map.get(key) || [];
+      current.push(item);
+      map.set(key, current);
+    }
+    for (const [key, list] of map.entries()) {
+      list.sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.name.localeCompare(b.name));
+      map.set(key, list);
+    }
+    return map;
+  }, [items]);
 
   const handleHide = async (item: CategoryItem) => {
     const action = item.active ? 'hide' : 'unhide';
@@ -339,61 +380,84 @@ export default function AdminCategories() {
                   </td>
                 </tr>
               ) : (
-                items.map((item) => (
-                  <tr key={item._id} className="border-b border-gray-100">
-                    <td className="py-3 px-2">
-                      {item.icon ? (
-                        <img src={item.icon} alt="" className="h-12 w-12 object-cover rounded-md border border-gray-200" />
-                      ) : (
-                        <div className="h-12 w-12 rounded-md bg-gray-100 border border-gray-200" />
-                      )}
-                    </td>
-                    <td className="py-3 px-2">
-                      <div className="font-medium text-gray-900">{item.name}</div>
-                    </td>
-                    <td className="py-3 px-2 text-gray-700">{item.slug}</td>
-                    <td className="py-3 px-2 text-gray-600">{item.order ?? 0}</td>
-                    <td className="py-3 px-2 text-gray-600">{item.menuOrder ?? 0}</td>
-                    <td className="py-3 px-2">
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                          item.active
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-                            : 'bg-amber-100 text-amber-700 border border-amber-200'
-                        }`}
-                      >
-                        {item.active ? 'Hiển thị' : 'Đã ẩn'}
-                      </span>
-                    </td>
-                    <td className="py-3 px-2 text-gray-600">{formatDate(item.createdAt)}</td>
-                    <td className="py-3 px-2">
-                      <div className="flex items-center justify-end gap-2">
+                parents.flatMap((parent) => {
+                  const children = childMap.get(parent._id) || [];
+                  const expanded = expandedParents[parent._id] ?? true;
+                  const parentRow = (
+                    <tr key={parent._id} className="border-b border-gray-100">
+                      <td className="py-3 px-2">
+                        {parent.icon ? (
+                          <img src={parent.icon} alt="" className="h-12 w-12 object-cover rounded-md border border-gray-200" />
+                        ) : (
+                          <div className="h-12 w-12 rounded-md bg-gray-100 border border-gray-200" />
+                        )}
+                      </td>
+                      <td className="py-3 px-2">
                         <button
-                          onClick={() => openEdit(item)}
-                          className="min-w-[60px] px-3 py-1 rounded-md border border-gray-200 text-sm hover:bg-gray-50 text-center"
+                          type="button"
+                          onClick={() =>
+                            setExpandedParents((prev) => ({ ...prev, [parent._id]: !(prev[parent._id] ?? true) }))
+                          }
+                          className="flex items-center gap-2 font-medium text-gray-900"
                         >
-                          Sửa
+                          <span className="text-xs">{expanded ? '▼' : '▶'}</span>
+                          <span>{parent.name}</span>
                         </button>
-                        <button
-                          onClick={() => handleHide(item)}
-                          className={`min-w-[60px] px-3 py-1 rounded-md border text-sm text-center ${
-                            item.active
-                              ? 'border-amber-200 text-amber-700 hover:bg-amber-50'
-                              : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'
-                          }`}
-                        >
-                          {item.active ? 'Ẩn' : 'Hiện'}
-                        </button>
-                        <button
-                          onClick={() => handleDelete(item)}
-                          className="min-w-[60px] px-3 py-1 rounded-md border border-rose-200 text-sm text-rose-700 hover:bg-rose-50 text-center"
-                        >
-                          Xóa
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                      <td className="py-3 px-2 text-gray-700">{parent.slug}</td>
+                      <td className="py-3 px-2 text-gray-600">{parent.order ?? 0}</td>
+                      <td className="py-3 px-2 text-gray-600">{parent.menuOrder ?? 0}</td>
+                      <td className="py-3 px-2">
+                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${parent.active ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-amber-100 text-amber-700 border border-amber-200'}`}>
+                          {parent.active ? 'Hiển thị' : 'Đã ẩn'}
+                        </span>
+                      </td>
+                      <td className="py-3 px-2 text-gray-600">{formatDate(parent.createdAt)}</td>
+                      <td className="py-3 px-2">
+                        <div className="flex items-center justify-end gap-2">
+                          <button onClick={() => openEdit(parent)} className="min-w-[60px] px-3 py-1 rounded-md border border-gray-200 text-sm hover:bg-gray-50 text-center">Sửa</button>
+                          <button onClick={() => handleHide(parent)} className={`min-w-[60px] px-3 py-1 rounded-md border text-sm text-center ${parent.active ? 'border-amber-200 text-amber-700 hover:bg-amber-50' : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'}`}>{parent.active ? 'Ẩn' : 'Hiện'}</button>
+                          <button onClick={() => handleDelete(parent)} className="min-w-[60px] px-3 py-1 rounded-md border border-rose-200 text-sm text-rose-700 hover:bg-rose-50 text-center">Xóa</button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+
+                  const childRows = expanded
+                    ? children.map((item) => (
+                        <tr key={item._id} className="border-b border-gray-50 bg-gray-50/40">
+                          <td className="py-3 px-2">
+                            {item.icon ? (
+                              <img src={item.icon} alt="" className="h-10 w-10 object-cover rounded-md border border-gray-200" />
+                            ) : (
+                              <div className="h-10 w-10 rounded-md bg-gray-100 border border-gray-200" />
+                            )}
+                          </td>
+                          <td className="py-3 px-2">
+                            <div className="pl-6 font-medium text-gray-800">└ {item.name}</div>
+                          </td>
+                          <td className="py-3 px-2 text-gray-700">{item.slug}</td>
+                          <td className="py-3 px-2 text-gray-600">{item.order ?? 0}</td>
+                          <td className="py-3 px-2 text-gray-600">{item.menuOrder ?? 0}</td>
+                          <td className="py-3 px-2">
+                            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${item.active ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-amber-100 text-amber-700 border border-amber-200'}`}>
+                              {item.active ? 'Hiển thị' : 'Đã ẩn'}
+                            </span>
+                          </td>
+                          <td className="py-3 px-2 text-gray-600">{formatDate(item.createdAt)}</td>
+                          <td className="py-3 px-2">
+                            <div className="flex items-center justify-end gap-2">
+                              <button onClick={() => openEdit(item)} className="min-w-[60px] px-3 py-1 rounded-md border border-gray-200 text-sm hover:bg-gray-50 text-center">Sửa</button>
+                              <button onClick={() => handleHide(item)} className={`min-w-[60px] px-3 py-1 rounded-md border text-sm text-center ${item.active ? 'border-amber-200 text-amber-700 hover:bg-amber-50' : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'}`}>{item.active ? 'Ẩn' : 'Hiện'}</button>
+                              <button onClick={() => handleDelete(item)} className="min-w-[60px] px-3 py-1 rounded-md border border-rose-200 text-sm text-rose-700 hover:bg-rose-50 text-center">Xóa</button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    : [];
+
+                  return [parentRow, ...childRows];
+                })
               )}
             </tbody>
           </table>
@@ -511,6 +575,23 @@ export default function AdminCategories() {
                         required
                       />
                     </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs text-gray-500">Danh mục cha (tuỳ chọn)</label>
+                      <select
+                        value={form.parentId}
+                        onChange={(e) => setForm((prev) => ({ ...prev, parentId: e.target.value }))}
+                        className="border border-gray-200 rounded-md px-3 h-11 text-sm bg-white"
+                      >
+                        <option value="">— Danh mục chính —</option>
+                        {parents
+                          .filter((p) => !editing || p._id !== editing._id)
+                          .map((p) => (
+                            <option key={p._id} value={p._id}>
+                              {p.name}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
                   </div>
 
                   <div className="grid gap-3 md:grid-cols-2">
@@ -521,7 +602,8 @@ export default function AdminCategories() {
                         min={0}
                         value={form.order}
                         onChange={(e) => setForm((prev) => ({ ...prev, order: Number(e.target.value) || 0 }))}
-                        className="border border-gray-200 rounded-md px-3 h-11 text-sm bg-white"
+                        className="border border-gray-200 rounded-md px-3 h-11 text-sm bg-white disabled:bg-gray-100"
+                        disabled={Boolean(form.parentId)}
                       />
                     </div>
                     <div className="flex flex-col gap-1">
@@ -531,7 +613,8 @@ export default function AdminCategories() {
                         min={0}
                         value={form.menuOrder}
                         onChange={(e) => setForm((prev) => ({ ...prev, menuOrder: Number(e.target.value) || 0 }))}
-                        className="border border-gray-200 rounded-md px-3 h-11 text-sm bg-white"
+                        className="border border-gray-200 rounded-md px-3 h-11 text-sm bg-white disabled:bg-gray-100"
+                        disabled={Boolean(form.parentId)}
                       />
                     </div>
                   </div>

@@ -1,5 +1,6 @@
 'use client';
 
+import { ReactNode } from 'react';
 import { DashboardDataPoint, MetricKey } from '../types/dashboard';
 import { formatNumber } from '../utils/chartConfig';
 
@@ -10,6 +11,10 @@ type SummaryCardsProps = {
     activeDays: number;
     totalDays: number;
     todayVisits: number;
+  };
+  productViewSummary?: {
+    totalViews: number;
+    topProducts: { productSlug: string; productName: string; views: number }[];
   };
   colors?: Record<MetricKey, string>;
 };
@@ -25,23 +30,35 @@ function calcTotals(data: DashboardDataPoint[]) {
   );
 }
 
-export default function SummaryCards({ data, visitSummary, colors }: SummaryCardsProps) {
+export default function SummaryCards({ data, visitSummary, productViewSummary, colors }: SummaryCardsProps) {
   const totals = calcTotals(data);
-  const cards: { label: string; value: string; metric: MetricKey | null }[] = [
+  const top3 = (productViewSummary?.topProducts || []).slice(0, 3);
+  const cards: { label: string; value: ReactNode; metric: MetricKey | null }[] = [
     { label: 'Người dùng mới', value: formatNumber(totals.users), metric: 'users' },
     {
-      label: 'Lượt truy cập (khoảng chọn)',
+      label: 'Tổng lượt truy cập',
       value: formatNumber(visitSummary?.rangeVisits ?? totals.visits),
       metric: 'visits',
     },
     {
-      label: 'Lượt truy cập hôm nay',
-      value: formatNumber(visitSummary?.todayVisits ?? 0),
+      label: 'Tổng lượt xem sản phẩm',
+      value: formatNumber(productViewSummary?.totalViews ?? 0),
       metric: null,
     },
     {
-      label: 'Ngày có truy cập',
-      value: `${visitSummary?.activeDays ?? 0}/${visitSummary?.totalDays ?? 0}`,
+      label: 'Top sản phẩm được xem nhiều',
+      value:
+        top3.length > 0 ? (
+          <div className="space-y-1">
+            {top3.map((p, idx) => (
+              <div key={`${p.productSlug}-${idx}`} className="text-sm text-gray-700 truncate">
+                {idx + 1}. {p.productName} ({formatNumber(p.views)})
+              </div>
+            ))}
+          </div>
+        ) : (
+          'Chưa có dữ liệu'
+        ),
       metric: null,
     },
   ];

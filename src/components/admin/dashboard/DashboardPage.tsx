@@ -203,6 +203,7 @@ export default function DashboardPage() {
       <SummaryCards
         data={filteredData}
         visitSummary={visitSummary || undefined}
+        productViewSummary={productViewSummary || undefined}
         colors={appliedColors}
       />
 
