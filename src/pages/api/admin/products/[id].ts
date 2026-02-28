@@ -81,9 +81,6 @@ export default async function handler(
     if (!name || !name.trim()) {
       errors.push({ field: 'name', message: 'CHƯA NHẬP TÊN SẢN PHẨM' });
     }
-    if (typeof price !== 'number' || Number.isNaN(price) || price <= 0) {
-      errors.push({ field: 'price', message: 'CHƯA NHẬP GIÁ CHO SẢN PHẨM' });
-    }
     if (!metaDescription || !metaDescription.trim()) {
       errors.push({ field: 'metaDescription', message: 'CHƯA NHẬP MÔ TẢ NGẮN' });
     }
@@ -140,7 +137,7 @@ export default async function handler(
     const payload: any = {
       name: name.trim(),
       slug: finalSlug,
-      price,
+      price: typeof price === 'number' && !Number.isNaN(price) ? price : 0,
       salePrice: salePrice ?? undefined,
       saleInputType: saleInputType === 'percent' ? 'percent' : saleInputType === 'amount' ? 'amount' : undefined,
       saleInputValue: typeof saleInputValue === 'number' && !Number.isNaN(saleInputValue) ? saleInputValue : undefined,
