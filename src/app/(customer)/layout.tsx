@@ -9,8 +9,8 @@ async function getCategories() {
   try {
     await connectMongo();
     const cats = await Category.find({ active: { $ne: false } })
-      .select('name slug icon order active')
-      .sort({ order: 1, name: 1 })
+      .select('name slug icon order menuOrder parentId active')
+      .sort({ menuOrder: 1, order: 1, name: 1 })
       .lean();
     return cats;
   } catch {

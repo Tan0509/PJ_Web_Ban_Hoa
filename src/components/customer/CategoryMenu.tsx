@@ -8,8 +8,10 @@ type Category = {
   _id?: string;
   slug?: string;
   name: string;
+  parentId?: string;
   active?: boolean;
   order?: number;
+  menuOrder?: number;
 };
 
 interface Props {
@@ -23,11 +25,12 @@ export default function CategoryMenu({ variant = 'desktop', categories: categori
   const pathname = usePathname();
   const [categories, setCategories] = useState<Category[]>(categoriesProp || []);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [hoverMenu, setHoverMenu] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const normalize = (list: Category[]) =>
     list
       .filter((c) => c?.active !== false)
-      .sort((a, b) => ((a as { menuOrder?: number }).menuOrder ?? 0) - ((b as { menuOrder?: number }).menuOrder ?? 0));
+      .sort((a, b) => (a.menuOrder ?? 0) - (b.menuOrder ?? 0) || (a.order ?? 0) - (b.order ?? 0));
 
   useEffect(() => {
     if (categoriesProp && categoriesProp.length) {
@@ -41,10 +44,7 @@ export default function CategoryMenu({ variant = 'desktop', categories: categori
         if (!res.ok) return;
         const json = await res.json();
         const list: Category[] = json?.data || [];
-        const filtered = list
-          .filter((c) => c?.active !== false)
-          .sort((a, b) => ((a as { menuOrder?: number }).menuOrder ?? 0) - ((b as { menuOrder?: number }).menuOrder ?? 0));
-        if (mounted) setCategories(filtered);
+        if (mounted) setCategories(normalize(list));
       } catch (e) {
         console.error(e);
       }
@@ -55,15 +55,40 @@ export default function CategoryMenu({ variant = 'desktop', categories: categori
     };
   }, [categoriesProp]);
 
+  const childMap = useMemo(() => {
+    const map = new Map<string, Category[]>();
+    for (const c of categories) {
+      if (!c.parentId) continue;
+      const key = String(c.parentId);
+      const curr = map.get(key) || [];
+      curr.push(c);
+      map.set(key, curr);
+    }
+    for (const [key, list] of map.entries()) {
+      list.sort((a, b) => (a.menuOrder ?? 0) - (b.menuOrder ?? 0) || a.name.localeCompare(b.name));
+      map.set(key, list);
+    }
+    return map;
+  }, [categories]);
+
+  const topCategories = useMemo(
+    () => categories.filter((c) => !c.parentId),
+    [categories]
+  );
+
   const items = useMemo(
     () => [
-      { href: '/', label: 'Trang chủ' },
-      ...categories.map((c) => ({
+      { href: '/', label: 'Trang chủ', children: [] as { href: string; label: string }[] },
+      ...topCategories.map((c) => ({
         href: `/category/${c.slug || c._id}`,
         label: c.name,
+        children: (childMap.get(String(c._id || '')) || []).map((child) => ({
+          href: `/category/${child.slug || child._id}`,
+          label: child.name,
+        })),
       })),
     ],
-    [categories]
+    [topCategories, childMap]
   );
 
   const visibleItems = useMemo(() => items.slice(0, MAX_VISIBLE), [items]);
@@ -83,16 +108,32 @@ export default function CategoryMenu({ variant = 'desktop', categories: categori
   if (variant === 'mobile') {
     return (
       <div className="flex flex-col py-1">
-        {items.map((item, idx) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className="block px-4 py-3 text-sm font-semibold uppercase tracking-normal leading-snug border-b border-white/10 last:border-0 animate-[menuItemIn_220ms_ease-out] opacity-0"
-            style={{ animationDelay: `${idx * 40}ms`, animationFillMode: 'forwards' }}
-          >
-            {item.label}
-          </Link>
-        ))}
+        {items.flatMap((item, idx) => {
+          const parent = (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="block px-4 py-3 text-sm font-semibold uppercase tracking-normal leading-snug border-b border-white/10 animate-[menuItemIn_220ms_ease-out] opacity-0"
+              style={{ animationDelay: `${idx * 40}ms`, animationFillMode: 'forwards' }}
+            >
+              {item.label}
+            </Link>
+          );
+
+          if (!item.children?.length) return [parent];
+
+          const children = item.children.map((child) => (
+            <Link
+              key={child.href}
+              href={child.href}
+              className="block pl-8 pr-4 py-2 text-[13px] font-medium text-white/90 border-b border-white/10"
+            >
+              {child.label}
+            </Link>
+          ));
+
+          return [parent, ...children];
+        })}
       </div>
     );
   }
@@ -100,13 +141,44 @@ export default function CategoryMenu({ variant = 'desktop', categories: categori
   return (
     <>
       {visibleItems.map((item) => (
-        <Link
+        <div
           key={item.href}
-          href={item.href}
-          className={`whitespace-nowrap hover:text-[#f6c142] ${pathname === item.href ? 'text-[#f6c142]' : ''}`}
+          className="relative"
+          onMouseEnter={() => {
+            if (item.children?.length) setHoverMenu(item.href);
+          }}
+          onMouseLeave={() => {
+            if (item.children?.length) setHoverMenu(null);
+          }}
         >
-          {item.label}
-        </Link>
+          <Link
+            href={item.href}
+            className={`whitespace-nowrap hover:text-[#f6c142] ${
+              pathname === item.href || item.children?.some((child) => child.href === pathname) ? 'text-[#f6c142]' : ''
+            }`}
+          >
+            {item.label}
+          </Link>
+          {item.children?.length ? (
+            <div
+              className={`absolute left-0 top-full mt-1 min-w-[200px] rounded-md bg-gray-50 py-2 shadow-lg ring-1 ring-black/5 z-50 ${
+                hoverMenu === item.href ? 'block' : 'hidden'
+              }`}
+            >
+              {item.children.map((child) => (
+                <Link
+                  key={child.href}
+                  href={child.href}
+                  className={`block px-4 py-2 text-sm text-gray-800 hover:bg-gray-100 hover:text-[#0f5c5c] ${
+                    pathname === child.href ? 'bg-gray-50 text-[#0f5c5c] font-semibold' : ''
+                  }`}
+                >
+                  {child.label}
+                </Link>
+              ))}
+            </div>
+          ) : null}
+        </div>
       ))}
       {moreItems.length > 0 && (
         <div className="relative" ref={dropdownRef}>

@@ -1,12 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useState, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useToast } from '@/components/ToastProvider';
 import { slugify } from '@/lib/helpers/string';
-
-// This module is cloned 100% from Product Admin
-// Keep logic and structure consistent with Product Admin
 
 type CategoryItem = {
   _id: string;
@@ -16,7 +13,6 @@ type CategoryItem = {
   parentId?: string;
   order?: number;
   menuOrder?: number;
-  description?: string;
   active: boolean;
   createdAt?: string;
 };
@@ -46,16 +42,14 @@ export default function AdminCategories() {
   const [status, setStatus] = useState<'all' | 'active' | 'inactive'>('all');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
 
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<CategoryItem | null>(null);
-  const [mounted, setMounted] = useState(false);
-  const [expandedParents, setExpandedParents] = useState<Record<string, boolean>>({});
   const [form, setForm] = useState({
     name: '',
     slug: '',
     icon: '',
-    parentId: '',
     order: 0,
     menuOrder: 0,
     active: true,
@@ -63,11 +57,14 @@ export default function AdminCategories() {
   const [iconUploading, setIconUploading] = useState(false);
   const iconInputRef = useRef<HTMLInputElement>(null);
 
+  const [showChildModal, setShowChildModal] = useState(false);
+  const [childParent, setChildParent] = useState<CategoryItem | null>(null);
+  const [childEditing, setChildEditing] = useState<CategoryItem | null>(null);
+  const [childForm, setChildForm] = useState({ name: '', slug: '', active: true });
+
   const totalPages = useMemo(() => Math.max(1, Math.ceil(total / pageSize)), [total]);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  useEffect(() => setMounted(true), []);
 
   const fetchCategories = async () => {
     try {
@@ -85,17 +82,7 @@ export default function AdminCategories() {
         throw new Error(body?.message || 'Fetch error');
       }
       const data: FetchResponse = await res.json();
-      const nextItems = data.items || [];
-      setItems(nextItems);
-      setExpandedParents((prev) => {
-        const next = { ...prev };
-        nextItems
-          .filter((x) => !x.parentId)
-          .forEach((p) => {
-            if (next[p._id] === undefined) next[p._id] = true;
-          });
-        return next;
-      });
+      setItems(data.items || []);
       setTotal(data.total || 0);
     } catch (err: any) {
       setError(err?.message || 'Lỗi tải dữ liệu');
@@ -109,17 +96,71 @@ export default function AdminCategories() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, search, status]);
 
+  const allParents = useMemo(
+    () =>
+      items
+        .filter((x) => !x.parentId)
+        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.name.localeCompare(b.name)),
+    [items]
+  );
+
+  const childMap = useMemo(() => {
+    const map = new Map<string, CategoryItem[]>();
+    for (const item of items) {
+      if (!item.parentId) continue;
+      const key = String(item.parentId);
+      const current = map.get(key) || [];
+      current.push(item);
+      map.set(key, current);
+    }
+    for (const [key, list] of map.entries()) {
+      list.sort((a, b) => a.name.localeCompare(b.name));
+      map.set(key, list);
+    }
+    return map;
+  }, [items]);
+
+  const parents = useMemo(() => {
+    if (!search) return allParents;
+    const q = search.toLowerCase();
+    return allParents.filter((p) => {
+      if (p.name.toLowerCase().includes(q) || p.slug.toLowerCase().includes(q)) return true;
+      const children = childMap.get(p._id) || [];
+      return children.some((c) => c.name.toLowerCase().includes(q) || c.slug.toLowerCase().includes(q));
+    });
+  }, [allParents, childMap, search]);
+
+  const childItemsForModal = useMemo(
+    () => (childParent ? childMap.get(childParent._id) || [] : []),
+    [childMap, childParent]
+  );
+
   const resetForm = () => {
     setEditing(null);
+    setForm({ name: '', slug: '', icon: '', order: 0, menuOrder: 0, active: true });
+  };
+
+  const openCreate = () => {
+    resetForm();
+    setShowForm(true);
+  };
+
+  const openEdit = (item: CategoryItem) => {
+    setEditing(item);
     setForm({
-      name: '',
-      slug: '',
-      icon: '',
-      parentId: '',
-      order: 0,
-      menuOrder: 0,
-      active: true,
+      name: item.name || '',
+      slug: item.slug || '',
+      icon: item.icon || '',
+      order: item.order ?? 0,
+      menuOrder: item.menuOrder ?? 0,
+      active: item.active ?? true,
     });
+    setShowForm(true);
+  };
+
+  const closeForm = () => {
+    setShowForm(false);
+    resetForm();
   };
 
   const handleIconFile = async (files: FileList | null) => {
@@ -146,37 +187,12 @@ export default function AdminCategories() {
       if (!res.ok) throw new Error('Upload failed');
       const data = await res.json();
       if (data?.url) setForm((prev) => ({ ...prev, icon: data.url }));
-    } catch (err) {
-      console.error(err);
+    } catch {
       addToast('Upload ảnh thất bại. Vui lòng thử lại.', 'error');
     } finally {
       setIconUploading(false);
       if (iconInputRef.current) iconInputRef.current.value = '';
     }
-  };
-
-  const openCreate = () => {
-    resetForm();
-    setShowForm(true);
-  };
-
-  const openEdit = (item: CategoryItem) => {
-    setEditing(item);
-    setForm({
-      name: item.name || '',
-      slug: item.slug || '',
-      icon: item.icon || '',
-      parentId: item.parentId || '',
-      order: item.order ?? 0,
-      menuOrder: item.menuOrder ?? 0,
-      active: item.active ?? true,
-    });
-    setShowForm(true);
-  };
-
-  const closeForm = () => {
-    setShowForm(false);
-    resetForm();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -185,34 +201,19 @@ export default function AdminCategories() {
       name: form.name.trim(),
       slug: form.slug.trim() || slugify(form.name),
       icon: form.icon.trim() || undefined,
-      parentId: form.parentId || undefined,
+      parentId: editing?.parentId || undefined,
       order: Number(form.order),
       menuOrder: Number(form.menuOrder),
       active: form.active,
     };
 
-    if (!payload.name) {
-      addToast('Vui lòng nhập tên danh mục', 'error');
+    if (!payload.name || !payload.slug) {
+      addToast('Vui lòng nhập tên và slug', 'error');
       return;
     }
-    if (!payload.slug) {
-      addToast('Vui lòng nhập slug (hoặc để tự sinh từ tên)', 'error');
+    if (!editing && !payload.icon) {
+      addToast('Vui lòng thêm ảnh danh mục', 'error');
       return;
-    }
-
-    if (!editing) {
-      if (!payload.parentId && !payload.icon) {
-        addToast('Vui lòng thêm ảnh danh mục', 'error');
-        return;
-      }
-      if (!payload.parentId && (Number.isNaN(payload.order) || payload.order < 0)) {
-        addToast('Vui lòng nhập thứ tự hiển thị (section) hợp lệ', 'error');
-        return;
-      }
-      if (!payload.parentId && (Number.isNaN(payload.menuOrder) || payload.menuOrder < 0)) {
-        addToast('Vui lòng nhập thứ tự menu hợp lệ', 'error');
-        return;
-      }
     }
 
     try {
@@ -235,38 +236,9 @@ export default function AdminCategories() {
     }
   };
 
-  const parents = useMemo(
-    () => {
-      const idSet = new Set(items.map((x) => x._id));
-      return items
-        .filter((x) => !x.parentId || !idSet.has(String(x.parentId)))
-        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.name.localeCompare(b.name));
-    },
-    [items]
-  );
-  const childMap = useMemo(() => {
-    const map = new Map<string, CategoryItem[]>();
-    for (const item of items) {
-      if (!item.parentId) continue;
-      const key = String(item.parentId);
-      const current = map.get(key) || [];
-      current.push(item);
-      map.set(key, current);
-    }
-    for (const [key, list] of map.entries()) {
-      list.sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.name.localeCompare(b.name));
-      map.set(key, list);
-    }
-    return map;
-  }, [items]);
-
   const handleHide = async (item: CategoryItem) => {
     const action = item.active ? 'hide' : 'unhide';
-    const confirmed = window.confirm(
-      item.active
-        ? `Ẩn danh mục "${item.name}"? (Danh mục sẽ không hiển thị cho khách hàng nhưng vẫn còn trong hệ thống)`
-        : `Hiển thị lại danh mục "${item.name}"?`
-    );
+    const confirmed = window.confirm(item.active ? `Ẩn danh mục "${item.name}"?` : `Hiển thị lại danh mục "${item.name}"?`);
     if (!confirmed) return;
     try {
       const res = await fetch(`/api/admin/categories/${item._id}`, {
@@ -274,10 +246,7 @@ export default function AdminCategories() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action }),
       });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body?.message || 'Lỗi ẩn/hiển thị danh mục');
-      }
+      if (!res.ok) throw new Error('Lỗi ẩn/hiển thị danh mục');
       addToast(item.active ? 'Đã ẩn danh mục' : 'Đã hiển thị danh mục', 'success');
       fetchCategories();
     } catch (err: any) {
@@ -286,11 +255,7 @@ export default function AdminCategories() {
   };
 
   const handleDelete = async (item: CategoryItem) => {
-    const confirmed = window.confirm(
-      `⚠️ CẢNH BÁO: Bạn có chắc muốn XÓA VĨNH VIỄN danh mục "${item.name}"?\n\n` +
-      `Hành động này KHÔNG THỂ hoàn tác. Danh mục sẽ bị xóa hoàn toàn khỏi database.\n\n` +
-      `Nếu chỉ muốn ẩn khỏi khách hàng, hãy sử dụng nút "Ẩn" thay vì "Xóa".`
-    );
+    const confirmed = window.confirm(`Bạn có chắc muốn xóa "${item.name}"?`);
     if (!confirmed) return;
     try {
       const res = await fetch(`/api/admin/categories/${item._id}`, { method: 'DELETE' });
@@ -298,10 +263,71 @@ export default function AdminCategories() {
         const body = await res.json().catch(() => ({}));
         throw new Error(body?.message || 'Lỗi xóa danh mục');
       }
-      addToast('Đã xóa danh mục vĩnh viễn', 'success');
+      addToast('Đã xóa danh mục', 'success');
       fetchCategories();
     } catch (err: any) {
       addToast(err?.message || 'Lỗi xóa danh mục', 'error');
+    }
+  };
+
+  const openChildModal = (parent: CategoryItem) => {
+    setChildParent(parent);
+    setChildEditing(null);
+    setChildForm({ name: '', slug: '', active: true });
+    setShowChildModal(true);
+  };
+
+  const closeChildModal = () => {
+    setShowChildModal(false);
+    setChildParent(null);
+    setChildEditing(null);
+    setChildForm({ name: '', slug: '', active: true });
+  };
+
+  const editChildInModal = (item: CategoryItem) => {
+    setChildEditing(item);
+    setChildForm({
+      name: item.name || '',
+      slug: item.slug || '',
+      active: item.active ?? true,
+    });
+  };
+
+  const saveChildFromModal = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!childParent) return;
+    const payload = {
+      name: childForm.name.trim(),
+      slug: childForm.slug.trim() || slugify(childForm.name),
+      parentId: childParent._id,
+      order: 0,
+      menuOrder: 0,
+      active: childForm.active,
+    };
+
+    if (!payload.name || !payload.slug) {
+      addToast('Vui lòng nhập tên và slug cho danh mục con', 'error');
+      return;
+    }
+
+    try {
+      const endpoint = childEditing ? `/api/admin/categories/${childEditing._id}` : '/api/admin/categories';
+      const method = childEditing ? 'PUT' : 'POST';
+      const res = await fetch(endpoint, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.message || 'Lỗi lưu danh mục con');
+      }
+      addToast(childEditing ? 'Đã cập nhật danh mục con' : 'Đã thêm danh mục con', 'success');
+      setChildEditing(null);
+      setChildForm({ name: '', slug: '', active: true });
+      fetchCategories();
+    } catch (err: any) {
+      addToast(err?.message || 'Lỗi lưu danh mục con', 'error');
     }
   };
 
@@ -343,120 +369,70 @@ export default function AdminCategories() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="min-w-full text-sm text-left">
+          <table className="min-w-[1150px] w-full text-sm text-left">
             <thead>
               <tr className="border-b border-gray-200 text-gray-600">
-                <th className="py-3 px-2">Ảnh</th>
-                <th className="py-3 px-2">Tên</th>
-                <th className="py-3 px-2">Slug</th>
-                <th className="py-3 px-2">Thứ tự (section)</th>
-                <th className="py-3 px-2">Thứ tự (menu)</th>
-                <th className="py-3 px-2">Trạng thái</th>
-                <th className="py-3 px-2">Ngày tạo</th>
-                <th className="py-3 px-2">
-                  <div className="flex items-center justify-end gap-2">
-                    <span className="min-w-[60px] px-3 text-center">Hành động</span>
-                  </div>
-                </th>
+                <th className="sticky top-0 z-10 bg-white py-3 px-2 whitespace-nowrap">Ảnh</th>
+                <th className="sticky top-0 z-10 bg-white py-3 px-2 whitespace-nowrap">Tên</th>
+                <th className="sticky top-0 z-10 bg-white py-3 px-2 whitespace-nowrap">Slug</th>
+                <th className="sticky top-0 z-10 bg-white py-3 px-2 whitespace-nowrap">Thứ tự (section)</th>
+                <th className="sticky top-0 z-10 bg-white py-3 px-2 whitespace-nowrap">Thứ tự (menu)</th>
+                <th className="sticky top-0 z-10 bg-white py-3 px-2 whitespace-nowrap">Danh mục con</th>
+                <th className="sticky top-0 z-10 bg-white py-3 px-2 whitespace-nowrap">Trạng thái</th>
+                <th className="sticky top-0 z-10 bg-white py-3 px-2 whitespace-nowrap">Ngày tạo</th>
+                <th className="sticky top-0 z-10 bg-white py-3 px-2 whitespace-nowrap">Hành động</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr>
-                  <td colSpan={8} className="py-6 text-center text-gray-500">
-                    Đang tải...
-                  </td>
-                </tr>
+                <tr><td colSpan={9} className="py-6 text-center text-gray-500">Đang tải...</td></tr>
               ) : error ? (
-                <tr>
-                  <td colSpan={8} className="py-6 text-center text-red-600">
-                    {error}
-                  </td>
-                </tr>
-              ) : items.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="py-6 text-center text-gray-500">
-                    Không có danh mục.
-                  </td>
-                </tr>
+                <tr><td colSpan={9} className="py-6 text-center text-red-600">{error}</td></tr>
+              ) : parents.length === 0 ? (
+                <tr><td colSpan={9} className="py-6 text-center text-gray-500">Không có danh mục.</td></tr>
               ) : (
-                parents.flatMap((parent) => {
-                  const children = childMap.get(parent._id) || [];
-                  const expanded = expandedParents[parent._id] ?? true;
-                  const parentRow = (
+                parents.map((parent) => {
+                  const childCount = (childMap.get(parent._id) || []).length;
+                  return (
                     <tr key={parent._id} className="border-b border-gray-100">
-                      <td className="py-3 px-2">
+                      <td className="py-3 px-2 whitespace-nowrap">
                         {parent.icon ? (
                           <img src={parent.icon} alt="" className="h-12 w-12 object-cover rounded-md border border-gray-200" />
                         ) : (
                           <div className="h-12 w-12 rounded-md bg-gray-100 border border-gray-200" />
                         )}
                       </td>
-                      <td className="py-3 px-2">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setExpandedParents((prev) => ({ ...prev, [parent._id]: !(prev[parent._id] ?? true) }))
-                          }
-                          className="flex items-center gap-2 font-medium text-gray-900"
-                        >
-                          <span className="text-xs">{expanded ? '▼' : '▶'}</span>
-                          <span>{parent.name}</span>
+                      <td className="py-3 px-2 whitespace-nowrap">
+                        <button onClick={() => openChildModal(parent)} className="font-medium text-emerald-700 hover:underline">
+                          {parent.name}
                         </button>
                       </td>
-                      <td className="py-3 px-2 text-gray-700">{parent.slug}</td>
-                      <td className="py-3 px-2 text-gray-600">{parent.order ?? 0}</td>
-                      <td className="py-3 px-2 text-gray-600">{parent.menuOrder ?? 0}</td>
-                      <td className="py-3 px-2">
+                      <td className="py-3 px-2 text-gray-700 whitespace-nowrap">{parent.slug}</td>
+                      <td className="py-3 px-2 text-gray-600 whitespace-nowrap">{parent.order ?? 0}</td>
+                      <td className="py-3 px-2 text-gray-600 whitespace-nowrap">{parent.menuOrder ?? 0}</td>
+                      <td className="py-3 px-2 whitespace-nowrap">
+                        <button
+                          onClick={() => openChildModal(parent)}
+                          className="rounded-md border border-gray-200 px-3 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                        >
+                          {childCount} danh mục con
+                        </button>
+                      </td>
+                      <td className="py-3 px-2 whitespace-nowrap">
                         <span className={`px-2 py-1 rounded-full text-xs font-semibold ${parent.active ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-amber-100 text-amber-700 border border-amber-200'}`}>
                           {parent.active ? 'Hiển thị' : 'Đã ẩn'}
                         </span>
                       </td>
-                      <td className="py-3 px-2 text-gray-600">{formatDate(parent.createdAt)}</td>
-                      <td className="py-3 px-2">
-                        <div className="flex items-center justify-end gap-2">
-                          <button onClick={() => openEdit(parent)} className="min-w-[60px] px-3 py-1 rounded-md border border-gray-200 text-sm hover:bg-gray-50 text-center">Sửa</button>
-                          <button onClick={() => handleHide(parent)} className={`min-w-[60px] px-3 py-1 rounded-md border text-sm text-center ${parent.active ? 'border-amber-200 text-amber-700 hover:bg-amber-50' : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'}`}>{parent.active ? 'Ẩn' : 'Hiện'}</button>
-                          <button onClick={() => handleDelete(parent)} className="min-w-[60px] px-3 py-1 rounded-md border border-rose-200 text-sm text-rose-700 hover:bg-rose-50 text-center">Xóa</button>
+                      <td className="py-3 px-2 text-gray-600 whitespace-nowrap">{formatDate(parent.createdAt)}</td>
+                      <td className="py-3 px-2 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => openEdit(parent)} className="min-w-[60px] px-3 py-1 rounded-md border border-gray-200 text-sm hover:bg-gray-50">Sửa</button>
+                          <button onClick={() => handleHide(parent)} className={`min-w-[60px] px-3 py-1 rounded-md border text-sm ${parent.active ? 'border-amber-200 text-amber-700 hover:bg-amber-50' : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'}`}>{parent.active ? 'Ẩn' : 'Hiện'}</button>
+                          <button onClick={() => handleDelete(parent)} className="min-w-[60px] px-3 py-1 rounded-md border border-rose-200 text-sm text-rose-700 hover:bg-rose-50">Xóa</button>
                         </div>
                       </td>
                     </tr>
                   );
-
-                  const childRows = expanded
-                    ? children.map((item) => (
-                        <tr key={item._id} className="border-b border-gray-50 bg-gray-50/40">
-                          <td className="py-3 px-2">
-                            {item.icon ? (
-                              <img src={item.icon} alt="" className="h-10 w-10 object-cover rounded-md border border-gray-200" />
-                            ) : (
-                              <div className="h-10 w-10 rounded-md bg-gray-100 border border-gray-200" />
-                            )}
-                          </td>
-                          <td className="py-3 px-2">
-                            <div className="pl-6 font-medium text-gray-800">└ {item.name}</div>
-                          </td>
-                          <td className="py-3 px-2 text-gray-700">{item.slug}</td>
-                          <td className="py-3 px-2 text-gray-600">{item.order ?? 0}</td>
-                          <td className="py-3 px-2 text-gray-600">{item.menuOrder ?? 0}</td>
-                          <td className="py-3 px-2">
-                            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${item.active ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-amber-100 text-amber-700 border border-amber-200'}`}>
-                              {item.active ? 'Hiển thị' : 'Đã ẩn'}
-                            </span>
-                          </td>
-                          <td className="py-3 px-2 text-gray-600">{formatDate(item.createdAt)}</td>
-                          <td className="py-3 px-2">
-                            <div className="flex items-center justify-end gap-2">
-                              <button onClick={() => openEdit(item)} className="min-w-[60px] px-3 py-1 rounded-md border border-gray-200 text-sm hover:bg-gray-50 text-center">Sửa</button>
-                              <button onClick={() => handleHide(item)} className={`min-w-[60px] px-3 py-1 rounded-md border text-sm text-center ${item.active ? 'border-amber-200 text-amber-700 hover:bg-amber-50' : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'}`}>{item.active ? 'Ẩn' : 'Hiện'}</button>
-                              <button onClick={() => handleDelete(item)} className="min-w-[60px] px-3 py-1 rounded-md border border-rose-200 text-sm text-rose-700 hover:bg-rose-50 text-center">Xóa</button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    : [];
-
-                  return [parentRow, ...childRows];
                 })
               )}
             </tbody>
@@ -464,9 +440,7 @@ export default function AdminCategories() {
         </div>
 
         <div className="flex items-center justify-between pt-4 text-sm text-gray-600">
-          <div>
-            Trang {page} / {totalPages}
-          </div>
+          <div>Trang {page} / {totalPages}</div>
           <div className="space-x-2">
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -488,20 +462,11 @@ export default function AdminCategories() {
 
       {showForm && mounted
         ? createPortal(
-            // FIX: Ensure modal overlay covers entire viewport
-            // IMPORTANT: Do not move modal back into admin layout
             <div className="fixed top-0 left-0 w-[100vw] h-[100vh] bg-[rgba(0,0,0,0.45)] backdrop-blur-sm flex items-center justify-center z-[999]">
               <div className="bg-white rounded-lg shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto z-[1000]">
                 <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
-                  <div>
-                    <div className="text-lg font-semibold text-gray-900">
-                      {editing ? 'Sửa danh mục' : 'Thêm danh mục'}
-                    </div>
-                    <div className="text-sm text-gray-500">This module is cloned 100% from Product Admin</div>
-                  </div>
-                  <button onClick={closeForm} className="text-gray-500 hover:text-gray-700 text-sm">
-                    Đóng
-                  </button>
+                  <div className="text-lg font-semibold text-gray-900">{editing ? 'Sửa danh mục' : 'Thêm danh mục'}</div>
+                  <button onClick={closeForm} className="text-gray-500 hover:text-gray-700 text-sm">Đóng</button>
                 </div>
                 <form onSubmit={handleSubmit} className="p-5 space-y-4">
                   <div className="flex flex-col gap-1">
@@ -522,14 +487,7 @@ export default function AdminCategories() {
                             <span className="font-semibold">Chọn / kéo thả ảnh danh mục</span>
                             <label className="px-3 py-2 bg-white border border-gray-300 rounded-md text-xs font-semibold text-gray-700 hover:border-emerald-500 cursor-pointer">
                               Chọn ảnh
-                              <input
-                                ref={iconInputRef}
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                disabled={iconUploading}
-                                onChange={(e) => handleIconFile(e.target.files)}
-                              />
+                              <input ref={iconInputRef} type="file" accept="image/*" className="hidden" disabled={iconUploading} onChange={(e) => handleIconFile(e.target.files)} />
                             </label>
                           </>
                         )}
@@ -537,13 +495,7 @@ export default function AdminCategories() {
                       {form.icon ? (
                         <div className="mt-3 flex items-center gap-2">
                           <img src={form.icon} alt="Preview" className="h-20 w-20 object-cover rounded-md border border-gray-200" />
-                          <button
-                            type="button"
-                            onClick={() => setForm((prev) => ({ ...prev, icon: '' }))}
-                            className="text-xs text-rose-600 hover:underline"
-                          >
-                            Xóa ảnh
-                          </button>
+                          <button type="button" onClick={() => setForm((prev) => ({ ...prev, icon: '' }))} className="text-xs text-rose-600 hover:underline">Xóa ảnh</button>
                         </div>
                       ) : null}
                     </div>
@@ -556,11 +508,7 @@ export default function AdminCategories() {
                         value={form.name}
                         onChange={(e) => {
                           const nameVal = e.target.value;
-                          setForm((prev) => ({
-                            ...prev,
-                            name: nameVal,
-                            slug: slugify(nameVal), // Tự hiển thị slug từ tên (như sản phẩm)
-                          }));
+                          setForm((prev) => ({ ...prev, name: nameVal, slug: slugify(nameVal) }));
                         }}
                         className="border border-gray-200 rounded-md px-3 h-11 text-sm bg-white"
                         required
@@ -575,23 +523,6 @@ export default function AdminCategories() {
                         required
                       />
                     </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs text-gray-500">Danh mục cha (tuỳ chọn)</label>
-                      <select
-                        value={form.parentId}
-                        onChange={(e) => setForm((prev) => ({ ...prev, parentId: e.target.value }))}
-                        className="border border-gray-200 rounded-md px-3 h-11 text-sm bg-white"
-                      >
-                        <option value="">— Danh mục chính —</option>
-                        {parents
-                          .filter((p) => !editing || p._id !== editing._id)
-                          .map((p) => (
-                            <option key={p._id} value={p._id}>
-                              {p.name}
-                            </option>
-                          ))}
-                      </select>
-                    </div>
                   </div>
 
                   <div className="grid gap-3 md:grid-cols-2">
@@ -602,8 +533,7 @@ export default function AdminCategories() {
                         min={0}
                         value={form.order}
                         onChange={(e) => setForm((prev) => ({ ...prev, order: Number(e.target.value) || 0 }))}
-                        className="border border-gray-200 rounded-md px-3 h-11 text-sm bg-white disabled:bg-gray-100"
-                        disabled={Boolean(form.parentId)}
+                        className="border border-gray-200 rounded-md px-3 h-11 text-sm bg-white"
                       />
                     </div>
                     <div className="flex flex-col gap-1">
@@ -613,40 +543,129 @@ export default function AdminCategories() {
                         min={0}
                         value={form.menuOrder}
                         onChange={(e) => setForm((prev) => ({ ...prev, menuOrder: Number(e.target.value) || 0 }))}
-                        className="border border-gray-200 rounded-md px-3 h-11 text-sm bg-white disabled:bg-gray-100"
-                        disabled={Boolean(form.parentId)}
+                        className="border border-gray-200 rounded-md px-3 h-11 text-sm bg-white"
                       />
                     </div>
                   </div>
 
                   <div className="flex items-center gap-3">
                     <label className="flex items-center gap-2 text-sm text-gray-800">
-                      <input
-                        type="checkbox"
-                        checked={form.active}
-                        onChange={(e) => setForm((prev) => ({ ...prev, active: e.target.checked }))}
-                        className="accent-emerald-600"
-                      />
+                      <input type="checkbox" checked={form.active} onChange={(e) => setForm((prev) => ({ ...prev, active: e.target.checked }))} className="accent-emerald-600" />
                       Hiển thị (active)
                     </label>
                   </div>
 
                   <div className="flex items-center justify-end gap-3 pt-2">
-                    <button
-                      type="button"
-                      onClick={closeForm}
-                      className="px-4 py-2 rounded-md border border-gray-200 text-sm hover:bg-gray-50"
-                    >
-                      Huỷ
-                    </button>
-                    <button
-                      type="submit"
-                      className="px-4 py-2 rounded-md bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700"
-                    >
+                    <button type="button" onClick={closeForm} className="px-4 py-2 rounded-md border border-gray-200 text-sm hover:bg-gray-50">Huỷ</button>
+                    <button type="submit" className="px-4 py-2 rounded-md bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700">
                       {editing ? 'Lưu thay đổi' : 'Thêm mới'}
                     </button>
                   </div>
                 </form>
+              </div>
+            </div>,
+            document.body
+          )
+        : null}
+
+      {showChildModal && childParent && mounted
+        ? createPortal(
+            <div className="fixed top-0 left-0 w-[100vw] h-[100vh] bg-[rgba(0,0,0,0.45)] backdrop-blur-sm flex items-center justify-center z-[1001]">
+              <div className="bg-white rounded-lg shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+                  <div>
+                    <div className="text-lg font-semibold text-gray-900">Danh mục con: {childParent.name}</div>
+                    <div className="text-sm text-gray-500">Quản lý danh mục con cho danh mục cha này</div>
+                  </div>
+                  <button onClick={closeChildModal} className="text-gray-500 hover:text-gray-700 text-sm">Đóng</button>
+                </div>
+
+                <div className="p-5 space-y-4">
+                  <div className="border border-gray-200 rounded-md overflow-hidden">
+                    <table className="min-w-full text-sm text-left">
+                      <thead>
+                        <tr className="border-b border-gray-200 text-gray-600">
+                          <th className="py-2 px-3">Tên</th>
+                          <th className="py-2 px-3">Slug</th>
+                          <th className="py-2 px-3">Trạng thái</th>
+                          <th className="py-2 px-3">Hành động</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {childItemsForModal.length === 0 ? (
+                          <tr>
+                            <td colSpan={4} className="py-4 px-3 text-gray-500 text-center">Chưa có danh mục con</td>
+                          </tr>
+                        ) : (
+                          childItemsForModal.map((child) => (
+                            <tr key={child._id} className="border-b border-gray-100 last:border-b-0">
+                              <td className="py-2 px-3 font-medium">{child.name}</td>
+                              <td className="py-2 px-3 text-gray-700">{child.slug}</td>
+                              <td className="py-2 px-3">
+                                <span className={`px-2 py-1 rounded-full text-xs font-semibold ${child.active ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-amber-100 text-amber-700 border border-amber-200'}`}>
+                                  {child.active ? 'Hiển thị' : 'Đã ẩn'}
+                                </span>
+                              </td>
+                              <td className="py-2 px-3">
+                                <div className="flex items-center gap-2">
+                                  <button onClick={() => editChildInModal(child)} className="px-2 py-1 rounded border border-gray-200 text-xs hover:bg-gray-50">Sửa</button>
+                                  <button onClick={() => handleHide(child)} className="px-2 py-1 rounded border border-gray-200 text-xs hover:bg-gray-50">{child.active ? 'Ẩn' : 'Hiện'}</button>
+                                  <button onClick={() => handleDelete(child)} className="px-2 py-1 rounded border border-rose-200 text-xs text-rose-700 hover:bg-rose-50">Xóa</button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <form onSubmit={saveChildFromModal} className="border border-gray-200 rounded-md p-4 space-y-3">
+                    <div className="text-sm font-semibold text-gray-900">
+                      {childEditing ? `Sửa danh mục con: ${childEditing.name}` : 'Thêm danh mục con mới'}
+                    </div>
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <input
+                        value={childForm.name}
+                        onChange={(e) => {
+                          const nameVal = e.target.value;
+                          setChildForm((prev) => ({ ...prev, name: nameVal, slug: slugify(nameVal) }));
+                        }}
+                        placeholder="Tên danh mục con"
+                        className="border border-gray-200 rounded-md px-3 h-11 text-sm bg-white"
+                        required
+                      />
+                      <input
+                        value={childForm.slug}
+                        onChange={(e) => setChildForm((prev) => ({ ...prev, slug: slugify(e.target.value) }))}
+                        placeholder="Slug"
+                        className="border border-gray-200 rounded-md px-3 h-11 text-sm bg-white"
+                        required
+                      />
+                    </div>
+                    <label className="flex items-center gap-2 text-sm text-gray-800">
+                      <input type="checkbox" checked={childForm.active} onChange={(e) => setChildForm((prev) => ({ ...prev, active: e.target.checked }))} className="accent-emerald-600" />
+                      Hiển thị (active)
+                    </label>
+                    <div className="flex items-center justify-end gap-2">
+                      {childEditing ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setChildEditing(null);
+                            setChildForm({ name: '', slug: '', active: true });
+                          }}
+                          className="px-3 py-2 rounded-md border border-gray-200 text-sm hover:bg-gray-50"
+                        >
+                          Huỷ sửa
+                        </button>
+                      ) : null}
+                      <button type="submit" className="px-4 py-2 rounded-md bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700">
+                        {childEditing ? 'Lưu danh mục con' : 'Thêm danh mục con'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
               </div>
             </div>,
             document.body
