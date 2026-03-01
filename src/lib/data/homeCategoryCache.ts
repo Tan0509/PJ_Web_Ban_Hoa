@@ -136,6 +136,13 @@ export async function rebuildHomeCategoryCache() {
   const slugs = categories
     .map((c: any) => String(c?.slug || '').trim())
     .filter(Boolean);
+
+  // Remove stale cache keys for categories that no longer exist or were renamed
+  const validKeys = slugs.map(toKey);
+  await HomeCategoryCache.deleteMany({
+    key: { $regex: `^${CACHE_KEY_PREFIX}`, $nin: validKeys },
+  });
+
   const built = await Promise.all(slugs.map((s) => buildCacheForSlug(s)));
 
   // Build snapshot for reporting (home cache only)

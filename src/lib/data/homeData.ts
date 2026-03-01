@@ -7,7 +7,7 @@ export async function getHomeData() {
   await connectMongo();
 
   const categoriesPromise = Category.find({ active: { $ne: false } })
-    .select('name slug icon order active')
+    .select('name slug icon order menuOrder parentId active')
     .sort({ order: 1, name: 1 })
     .lean()
     .then((r) => r);
@@ -33,17 +33,18 @@ export async function getHomeData() {
   ]);
 
   const categories = cats;
+  const topLevelCategories = categories.filter((c: any) => !c.parentId);
   const posters = post;
   const featuredProductsRaw = featured;
-  const topCategories = categories.slice(0, 6);
-  const hasMore = categories.length > 6;
+  const topCategories = topLevelCategories.slice(0, 6);
+  const hasMore = topLevelCategories.length > 6;
   const featuredProducts = featuredProductsRaw.slice(0, 8);
   const featuredHasMore = featuredProductsRaw.length > 8;
 
   const categoryProducts: unknown[] = [];
 
   return {
-    categories,
+    categories: topLevelCategories,
     posters,
     topCategories,
     hasMore,

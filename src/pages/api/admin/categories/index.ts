@@ -3,6 +3,8 @@ import dbConnect from '@/lib/mongodb';
 import Category from '@/models/Category';
 import { isAdminFromSession } from '@/lib/authHelpers';
 import { methodNotAllowed } from '@/lib/helpers/pagesApi';
+import { rebuildHomeCategoryCache } from '@/lib/data/homeCategoryCache';
+import { clearHomeApiCaches } from '@/lib/data/homeApiCache';
 
 type CategoryPayload = {
   name: string;
@@ -163,6 +165,8 @@ export default async function handler(
 
     if (req.method === 'POST') {
       const created = await createCategory(req.body || {});
+      await rebuildHomeCategoryCache();
+      clearHomeApiCaches();
       return res.status(201).json({
         items: [created],
         total: 1,

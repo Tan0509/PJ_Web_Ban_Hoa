@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getSessionForAppRouter } from '@/lib/authHelpers';
 import { json500 } from '@/lib/helpers/apiResponse';
 import { rebuildHomeCategoryCache } from '@/lib/data/homeCategoryCache';
+import { clearHomeApiCaches } from '@/lib/data/homeApiCache';
 
 export const runtime = 'nodejs';
 
@@ -16,6 +17,7 @@ export async function POST() {
     if (!isAdminRole(role)) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
 
     const result = await rebuildHomeCategoryCache();
+    clearHomeApiCaches();
     return NextResponse.json({ success: true, data: result });
   } catch (err) {
     return json500(err);

@@ -4,6 +4,9 @@ import Category from '@/models/Category';
 import { isAdminFromSession } from '@/lib/authHelpers';
 import { getPublicIdFromUrl, deleteFromCloudinary } from '@/lib/cloudinary';
 import { methodNotAllowed } from '@/lib/helpers/pagesApi';
+import Product from '@/models/Product';
+import { rebuildHomeCategoryCache } from '@/lib/data/homeCategoryCache';
+import { clearHomeApiCaches } from '@/lib/data/homeApiCache';
 
 type ErrorResponse = { message: string };
 
@@ -115,10 +118,21 @@ export default async function handler(
   try {
     if (req.method === 'PUT' || req.method === 'PATCH') {
       const updated = await updateCategory(id as string, req.body);
+      await rebuildHomeCategoryCache();
+      clearHomeApiCaches();
       return res.status(200).json(updated);
     }
 
     if (req.method === 'DELETE') {
+      const productCount = await Product.countDocuments({
+        $or: [{ categoryId: String(id) }, { categoryIds: String(id) }],
+      });
+      if (productCount > 0) {
+        return res.status(400).json({
+          message: 'Danh mục đang có sản phẩm. Vui lòng chuyển sản phẩm sang danh mục khác trước khi xóa.',
+          productCount,
+        });
+      }
       const childCount = await Category.countDocuments({ parentId: String(id) });
       if (childCount > 0) {
         return res.status(400).json({
@@ -143,12 +157,31 @@ export default async function handler(
         }
       }
       await Category.findByIdAndDelete(id);
+      await rebuildHomeCategoryCache();
+      clearHomeApiCaches();
       return res.status(200).json({ message: 'Đã xóa danh mục vĩnh viễn', success: true });
     }
 
     // Hide/Unhide endpoint
     if (req.method === 'POST') {
       const { action } = req.body || {};
+      if (action === 'list_products') {
+        const sourceCategoryId = String(id);
+        const products: any[] = await Product.find({
+          $or: [{ categoryId: sourceCategoryId }, { categoryIds: sourceCategoryId }],
+        })
+          .select('_id name slug')
+          .sort({ name: 1 })
+          .lean();
+        return res.status(200).json({
+          success: true,
+          products: products.map((p: any) => ({
+            _id: String(p?._id || ''),
+            name: String(p?.name || ''),
+            slug: String(p?.slug || ''),
+          })),
+        });
+      }
       if (action === 'hide') {
         const updated = await Category.findByIdAndUpdate(id, { active: false }, { new: true });
         if (!updated) {
@@ -156,6 +189,8 @@ export default async function handler(
           (err as any).status = 404;
           throw err;
         }
+        await rebuildHomeCategoryCache();
+        clearHomeApiCaches();
         return res.status(200).json({ ...updated.toObject(), message: 'Đã ẩn danh mục' });
       }
       if (action === 'unhide') {
@@ -165,7 +200,104 @@ export default async function handler(
           (err as any).status = 404;
           throw err;
         }
+        await rebuildHomeCategoryCache();
+        clearHomeApiCaches();
         return res.status(200).json({ ...updated.toObject(), message: 'Đã hiển thị danh mục' });
+      }
+      if (action === 'transfer_delete') {
+        const { targetCategoryId, productIds } = req.body || {};
+        const sourceCategoryId = String(id);
+        const targetId = String(targetCategoryId || '').trim();
+
+        if (!targetId || targetId === sourceCategoryId) {
+          return res.status(400).json({ message: 'Danh mục đích không hợp lệ' });
+        }
+
+        const targetCategory: any = await Category.findById(targetId).select('_id slug').lean();
+        if (!targetCategory) return res.status(400).json({ message: 'Danh mục đích không tồn tại' });
+
+        const sourceCategory: any = await Category.findById(sourceCategoryId).select('_id slug icon').lean();
+        if (!sourceCategory) return res.status(404).json({ message: 'Danh mục nguồn không tồn tại' });
+
+        const childCount = await Category.countDocuments({ parentId: sourceCategoryId });
+        if (childCount > 0) {
+          return res.status(400).json({
+            message: 'Danh mục cha đang có danh mục con. Vui lòng xử lý danh mục con trước.',
+          });
+        }
+
+        const ids = Array.isArray(productIds)
+          ? productIds.map((x: any) => String(x || '').trim()).filter(Boolean)
+          : [];
+        if (!ids.length) {
+          return res.status(400).json({ message: 'Vui lòng chọn ít nhất 1 sản phẩm để chuyển' });
+        }
+
+        const products: any[] = await Product.find({
+          _id: { $in: ids },
+          $or: [{ categoryId: sourceCategoryId }, { categoryIds: sourceCategoryId }],
+        })
+          .select('_id categoryId categoryIds categorySlug categorySlugs')
+          .lean();
+
+        if (!products.length) {
+          return res.status(400).json({ message: 'Không có sản phẩm hợp lệ để chuyển' });
+        }
+
+        for (const p of products) {
+          const nextIds = Array.from(
+            new Set(
+              [targetId, ...(Array.isArray(p.categoryIds) ? p.categoryIds : []), p.categoryId]
+                .map((x) => String(x || '').trim())
+                .filter(Boolean)
+                .filter((x) => x !== sourceCategoryId)
+            )
+          );
+
+          const nextSlugs = Array.from(
+            new Set(
+              [targetCategory.slug, ...(Array.isArray(p.categorySlugs) ? p.categorySlugs : []), p.categorySlug]
+                .map((x) => String(x || '').trim())
+                .filter(Boolean)
+                .filter((x) => x !== String(sourceCategory.slug || ''))
+            )
+          );
+
+          await Product.updateOne(
+            { _id: p._id },
+            {
+              $set: {
+                categoryId: nextIds[0] || targetId,
+                categoryIds: nextIds,
+                categorySlug: nextSlugs[0] || String(targetCategory.slug || ''),
+                categorySlugs: nextSlugs,
+              },
+            }
+          );
+        }
+
+        const sourceIcon = String(sourceCategory?.icon || '');
+        if (sourceIcon) {
+          const publicId = getPublicIdFromUrl(sourceIcon);
+          if (publicId) {
+            try {
+              await deleteFromCloudinary(publicId);
+            } catch (e) {
+              console.error('Cloudinary delete image error:', e);
+            }
+          }
+        }
+
+        await Category.findByIdAndDelete(sourceCategoryId);
+        await rebuildHomeCategoryCache();
+        clearHomeApiCaches();
+
+        return res.status(200).json({
+          success: true,
+          message: 'Đã chuyển sản phẩm và xóa danh mục thành công',
+          movedCount: products.length,
+          targetCategoryId: targetId,
+        });
       }
       return res.status(400).json({ message: 'Invalid action' });
     }

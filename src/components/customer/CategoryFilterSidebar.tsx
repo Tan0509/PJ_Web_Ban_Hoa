@@ -4,7 +4,15 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
-type CategoryItem = { _id?: string; slug?: string; name: string; menuOrder?: number; active?: boolean };
+type CategoryItem = {
+  _id?: string;
+  slug?: string;
+  name: string;
+  menuOrder?: number;
+  order?: number;
+  parentId?: string;
+  active?: boolean;
+};
 
 type Props = {
   categoryName: string;
@@ -45,18 +53,24 @@ export default function CategoryFilterSidebar({ categoryName, totalProducts, slu
   const [showColorFilter, setShowColorFilter] = useState(colorsEnabled);
   const [showTypeFilter, setShowTypeFilter] = useState(typesEnabled);
   const [categories, setCategories] = useState<CategoryItem[]>([]);
+  const [expandedParents, setExpandedParents] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     let mounted = true;
     const load = async () => {
       try {
-        const res = await fetch('/api/categories');
+        const res = await fetch('/api/categories?includeChildren=1');
         if (!res.ok) return;
         const json = await res.json();
         const list: CategoryItem[] = json?.data || [];
         const filtered = list
           .filter((c) => c?.active !== false)
-          .sort((a, b) => (a.menuOrder ?? 0) - (b.menuOrder ?? 0));
+          .sort((a, b) => {
+            const aParent = a.parentId ? 1 : 0;
+            const bParent = b.parentId ? 1 : 0;
+            if (aParent !== bParent) return aParent - bParent;
+            return (a.menuOrder ?? a.order ?? 0) - (b.menuOrder ?? b.order ?? 0);
+          });
         if (mounted) setCategories(filtered);
       } catch {
         // ignore
@@ -65,6 +79,30 @@ export default function CategoryFilterSidebar({ categoryName, totalProducts, slu
     load();
     return () => { mounted = false; };
   }, []);
+
+  const categoryTree = useMemo(() => {
+    const parents = categories.filter((c) => !c.parentId);
+    const childMap = new Map<string, CategoryItem[]>();
+    categories.forEach((item) => {
+      if (!item.parentId) return;
+      const key = String(item.parentId);
+      const list = childMap.get(key) || [];
+      list.push(item);
+      childMap.set(key, list);
+    });
+    childMap.forEach((list, key) => {
+      list.sort((a, b) => (a.menuOrder ?? a.order ?? 0) - (b.menuOrder ?? b.order ?? 0));
+      childMap.set(key, list);
+    });
+    return { parents, childMap };
+  }, [categories]);
+
+  useEffect(() => {
+    const selected = categories.find((c) => c.slug === slug);
+    if (!selected?.parentId) return;
+    const parentKey = String(selected.parentId);
+    setExpandedParents((prev) => ({ ...prev, [parentKey]: true }));
+  }, [categories, slug]);
 
   // Only fetch if productFilters not provided (fallback for edge cases)
   useEffect(() => {
@@ -230,21 +268,59 @@ export default function CategoryFilterSidebar({ categoryName, totalProducts, slu
         <div className="border-t border-gray-200 pt-4 space-y-2">
           <div className="text-sm font-semibold text-gray-900">Tất cả danh mục</div>
           <ul className="space-y-1">
-            {categories.map((c) => {
-              const href = `/category/${c.slug || c._id}`;
-              const isCurrent = (c.slug || '') === slug;
+            {categoryTree.parents.map((parent) => {
+              const parentId = String(parent._id || '');
+              const children = categoryTree.childMap.get(parentId) || [];
+              const parentHref = `/category/${parent.slug || parent._id}`;
+              const isCurrentParent = (parent.slug || '') === slug;
+              const isAnyChildCurrent = children.some((child) => (child.slug || '') === slug);
+              const isExpanded = expandedParents[parentId] || isAnyChildCurrent;
+
               return (
-                <li key={c._id || c.slug || c.name}>
-                  <Link
-                    href={href}
-                    className={`block rounded-md px-2 py-1.5 text-sm transition ${
-                      isCurrent
-                        ? 'bg-[#0f5c5c]/10 text-[#0f5c5c] font-semibold'
-                        : 'text-gray-700 hover:bg-gray-100 hover:text-[#0f5c5c]'
-                    }`}
-                  >
-                    {c.name}
-                  </Link>
+                <li key={parent._id || parent.slug || parent.name}>
+                  <div className="flex items-center gap-1">
+                    <Link
+                      href={parentHref}
+                      className={`flex-1 rounded-md px-2 py-1.5 text-sm transition ${
+                        isCurrentParent
+                          ? 'bg-[#0f5c5c]/10 text-[#0f5c5c] font-semibold'
+                          : 'text-gray-700 hover:bg-gray-100 hover:text-[#0f5c5c]'
+                      }`}
+                    >
+                      {parent.name}
+                    </Link>
+                    {children.length > 0 && (
+                      <button
+                        type="button"
+                        aria-label={isExpanded ? `Thu gọn ${parent.name}` : `Mở rộng ${parent.name}`}
+                        onClick={() => setExpandedParents((prev) => ({ ...prev, [parentId]: !isExpanded }))}
+                        className="h-7 w-7 rounded-md border border-gray-200 text-gray-600 hover:bg-gray-100"
+                      >
+                        {isExpanded ? '▾' : '▸'}
+                      </button>
+                    )}
+                  </div>
+                  {children.length > 0 && isExpanded && (
+                    <ul className="mt-1 ml-3 space-y-1 border-l border-gray-200 pl-2">
+                      {children.map((child) => {
+                        const isCurrentChild = (child.slug || '') === slug;
+                        return (
+                          <li key={child._id || child.slug || child.name}>
+                            <Link
+                              href={`/category/${child.slug || child._id}`}
+                              className={`block rounded-md px-2 py-1.5 text-sm transition ${
+                                isCurrentChild
+                                  ? 'bg-[#0f5c5c]/10 text-[#0f5c5c] font-semibold'
+                                  : 'text-gray-600 hover:bg-gray-100 hover:text-[#0f5c5c]'
+                              }`}
+                            >
+                              {child.name}
+                            </Link>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
                 </li>
               );
             })}

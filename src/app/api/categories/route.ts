@@ -6,15 +6,18 @@ export const runtime = 'nodejs';
 // Cache API response for 5 minutes (categories don't change frequently)
 export const revalidate = 300;
 
-export async function GET() {
+export async function GET(req: Request) {
   await connectMongo();
+  const { searchParams } = new URL(req.url);
+  const includeChildren = searchParams.get('includeChildren') === '1';
   const cats = await Category.find({ active: { $ne: false } })
     .select('name slug icon parentId order menuOrder active')
     .sort({ order: 1, name: 1 })
     .lean();
   const topLevel = cats.filter((c: any) => !c.parentId);
+  const data = includeChildren ? cats : topLevel;
   return NextResponse.json(
-    { success: true, data: topLevel },
+    { success: true, data },
     {
       headers: {
         'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',

@@ -24,6 +24,12 @@ type FetchResponse = {
   limit: number;
 };
 
+type ProductLite = {
+  _id: string;
+  name: string;
+  slug: string;
+};
+
 const pageSize = 200;
 
 function formatDate(value?: string) {
@@ -61,6 +67,21 @@ export default function AdminCategories() {
   const [childParent, setChildParent] = useState<CategoryItem | null>(null);
   const [childEditing, setChildEditing] = useState<CategoryItem | null>(null);
   const [childForm, setChildForm] = useState({ name: '', slug: '', active: true });
+  const [deleteModal, setDeleteModal] = useState<{
+    open: boolean;
+    source: CategoryItem | null;
+    targetCategoryId: string;
+    loading: boolean;
+    products: ProductLite[];
+    selectedProductIds: string[];
+  }>({
+    open: false,
+    source: null,
+    targetCategoryId: '',
+    loading: false,
+    products: [],
+    selectedProductIds: [],
+  });
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil(total / pageSize)), [total]);
 
@@ -254,16 +275,80 @@ export default function AdminCategories() {
     }
   };
 
-  const handleDelete = async (item: CategoryItem) => {
-    const confirmed = window.confirm(`Bạn có chắc muốn xóa "${item.name}"?`);
-    if (!confirmed) return;
+  const openDeleteModal = async (item: CategoryItem) => {
+    setDeleteModal({
+      open: true,
+      source: item,
+      targetCategoryId: '',
+      loading: true,
+      products: [],
+      selectedProductIds: [],
+    });
     try {
-      const res = await fetch(`/api/admin/categories/${item._id}`, { method: 'DELETE' });
-      if (!res.ok) {
+      const res = await fetch(`/api/admin/categories/${item._id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'list_products' }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.message || 'Không tải được sản phẩm trong danh mục');
+      const products: ProductLite[] = Array.isArray(data?.products) ? data.products : [];
+      setDeleteModal((prev) => ({
+        ...prev,
+        loading: false,
+        products,
+        selectedProductIds: products.map((p) => p._id),
+      }));
+    } catch (err: any) {
+      addToast(err?.message || 'Không tải được sản phẩm trong danh mục', 'error');
+      setDeleteModal((prev) => ({ ...prev, loading: false }));
+    }
+  };
+
+  const closeDeleteModal = () => {
+    setDeleteModal({
+      open: false,
+      source: null,
+      targetCategoryId: '',
+      loading: false,
+      products: [],
+      selectedProductIds: [],
+    });
+  };
+
+  const confirmDeleteWithTransfer = async () => {
+    const source = deleteModal.source;
+    if (!source) return;
+    try {
+      if (deleteModal.products.length > 0) {
+        if (!deleteModal.targetCategoryId) {
+          addToast('Vui lòng chọn danh mục đích để chuyển sản phẩm', 'error');
+          return;
+        }
+        if (!deleteModal.selectedProductIds.length) {
+          addToast('Vui lòng chọn ít nhất 1 sản phẩm để chuyển', 'error');
+          return;
+        }
+
+        const res = await fetch(`/api/admin/categories/${source._id}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'transfer_delete',
+            targetCategoryId: deleteModal.targetCategoryId,
+            productIds: deleteModal.selectedProductIds,
+          }),
+        });
         const body = await res.json().catch(() => ({}));
-        throw new Error(body?.message || 'Lỗi xóa danh mục');
+        if (!res.ok) throw new Error(body?.message || 'Lỗi chuyển sản phẩm và xóa danh mục');
+        addToast(`Đã chuyển ${body?.movedCount || 0} sản phẩm và xóa danh mục`, 'success');
+      } else {
+        const res = await fetch(`/api/admin/categories/${source._id}`, { method: 'DELETE' });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(body?.message || 'Lỗi xóa danh mục');
+        addToast('Đã xóa danh mục', 'success');
       }
-      addToast('Đã xóa danh mục', 'success');
+      closeDeleteModal();
       fetchCategories();
     } catch (err: any) {
       addToast(err?.message || 'Lỗi xóa danh mục', 'error');
@@ -428,7 +513,7 @@ export default function AdminCategories() {
                         <div className="flex items-center gap-2">
                           <button onClick={() => openEdit(parent)} className="min-w-[60px] px-3 py-1 rounded-md border border-gray-200 text-sm hover:bg-gray-50">Sửa</button>
                           <button onClick={() => handleHide(parent)} className={`min-w-[60px] px-3 py-1 rounded-md border text-sm ${parent.active ? 'border-amber-200 text-amber-700 hover:bg-amber-50' : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'}`}>{parent.active ? 'Ẩn' : 'Hiện'}</button>
-                          <button onClick={() => handleDelete(parent)} className="min-w-[60px] px-3 py-1 rounded-md border border-rose-200 text-sm text-rose-700 hover:bg-rose-50">Xóa</button>
+                          <button onClick={() => openDeleteModal(parent)} className="min-w-[60px] px-3 py-1 rounded-md border border-rose-200 text-sm text-rose-700 hover:bg-rose-50">Xóa</button>
                         </div>
                       </td>
                     </tr>
@@ -610,7 +695,7 @@ export default function AdminCategories() {
                                 <div className="flex items-center gap-2">
                                   <button onClick={() => editChildInModal(child)} className="px-2 py-1 rounded border border-gray-200 text-xs hover:bg-gray-50">Sửa</button>
                                   <button onClick={() => handleHide(child)} className="px-2 py-1 rounded border border-gray-200 text-xs hover:bg-gray-50">{child.active ? 'Ẩn' : 'Hiện'}</button>
-                                  <button onClick={() => handleDelete(child)} className="px-2 py-1 rounded border border-rose-200 text-xs text-rose-700 hover:bg-rose-50">Xóa</button>
+                                  <button onClick={() => openDeleteModal(child)} className="px-2 py-1 rounded border border-rose-200 text-xs text-rose-700 hover:bg-rose-50">Xóa</button>
                                 </div>
                               </td>
                             </tr>
@@ -665,6 +750,126 @@ export default function AdminCategories() {
                       </button>
                     </div>
                   </form>
+                </div>
+              </div>
+            </div>,
+            document.body
+          )
+        : null}
+
+      {deleteModal.open && deleteModal.source && mounted
+        ? createPortal(
+            <div className="fixed top-0 left-0 w-[100vw] h-[100vh] bg-[rgba(0,0,0,0.45)] backdrop-blur-sm flex items-center justify-center z-[1002]">
+              <div className="bg-white rounded-lg shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+                  <div>
+                    <div className="text-lg font-semibold text-gray-900">Xóa danh mục: {deleteModal.source.name}</div>
+                    <div className="text-sm text-gray-500">
+                      {deleteModal.products.length
+                        ? 'Danh mục này đang có sản phẩm. Chọn sản phẩm cần chuyển và danh mục đích.'
+                        : 'Danh mục này chưa có sản phẩm. Bạn có thể xóa ngay.'}
+                    </div>
+                  </div>
+                  <button onClick={closeDeleteModal} className="text-gray-500 hover:text-gray-700 text-sm">
+                    Đóng
+                  </button>
+                </div>
+                <div className="p-5 space-y-4">
+                  {deleteModal.loading ? (
+                    <div className="text-sm text-gray-500">Đang tải danh sách sản phẩm...</div>
+                  ) : deleteModal.products.length > 0 ? (
+                    <>
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <div className="flex flex-col gap-1">
+                          <label className="text-xs text-gray-500">Chuyển sang danh mục</label>
+                          <select
+                            value={deleteModal.targetCategoryId}
+                            onChange={(e) => setDeleteModal((prev) => ({ ...prev, targetCategoryId: e.target.value }))}
+                            className="border border-gray-200 rounded-md px-3 h-11 text-sm bg-white"
+                          >
+                            <option value="">— Chọn danh mục đích —</option>
+                            {allParents
+                              .filter((x) => x._id !== deleteModal.source?._id)
+                              .map((x) => (
+                                <option key={x._id} value={x._id}>
+                                  {x.name}
+                                </option>
+                              ))}
+                          </select>
+                        </div>
+                        <div className="flex items-end">
+                          <label className="flex items-center gap-2 text-sm">
+                            <input
+                              type="checkbox"
+                              checked={deleteModal.products.length > 0 && deleteModal.selectedProductIds.length === deleteModal.products.length}
+                              onChange={(e) =>
+                                setDeleteModal((prev) => ({
+                                  ...prev,
+                                  selectedProductIds: e.target.checked ? prev.products.map((p) => p._id) : [],
+                                }))
+                              }
+                              className="accent-emerald-600"
+                            />
+                            Chọn tất cả sản phẩm
+                          </label>
+                        </div>
+                      </div>
+
+                      <div className="border border-gray-200 rounded-md max-h-72 overflow-auto">
+                        <table className="min-w-full text-sm">
+                          <thead>
+                            <tr className="border-b border-gray-200 bg-gray-50 text-left text-gray-600">
+                              <th className="py-2 px-3 w-10" />
+                              <th className="py-2 px-3">Sản phẩm</th>
+                              <th className="py-2 px-3">Slug</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {deleteModal.products.map((p) => (
+                              <tr key={p._id} className="border-b border-gray-100 last:border-b-0">
+                                <td className="py-2 px-3">
+                                  <input
+                                    type="checkbox"
+                                    checked={deleteModal.selectedProductIds.includes(p._id)}
+                                    onChange={(e) =>
+                                      setDeleteModal((prev) => ({
+                                        ...prev,
+                                        selectedProductIds: e.target.checked
+                                          ? [...prev.selectedProductIds, p._id]
+                                          : prev.selectedProductIds.filter((id) => id !== p._id),
+                                      }))
+                                    }
+                                    className="accent-emerald-600"
+                                  />
+                                </td>
+                                <td className="py-2 px-3">{p.name}</td>
+                                <td className="py-2 px-3 text-gray-600">{p.slug}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-sm text-gray-600">Không có sản phẩm trong danh mục này.</div>
+                  )}
+
+                  <div className="flex items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={closeDeleteModal}
+                      className="px-4 py-2 rounded-md border border-gray-200 text-sm hover:bg-gray-50"
+                    >
+                      Hủy
+                    </button>
+                    <button
+                      type="button"
+                      onClick={confirmDeleteWithTransfer}
+                      className="px-4 py-2 rounded-md bg-rose-600 text-white text-sm font-semibold hover:bg-rose-700"
+                    >
+                      {deleteModal.products.length ? 'Chuyển & Xóa danh mục' : 'Xóa danh mục'}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>,
