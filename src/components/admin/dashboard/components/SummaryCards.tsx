@@ -51,7 +51,7 @@ export default function SummaryCards({ data, visitSummary, productViewSummary, c
         top3.length > 0 ? (
           <div className="space-y-1">
             {top3.map((p, idx) => (
-              <div key={`${p.productSlug}-${idx}`} className="text-sm text-gray-700 truncate">
+              <div key={`${p.productName}-${idx}`} className="text-sm text-gray-700 truncate">
                 {idx + 1}. {p.productName} ({formatNumber(p.views)})
               </div>
             ))}

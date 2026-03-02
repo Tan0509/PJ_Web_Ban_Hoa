@@ -310,14 +310,13 @@ export default function DashboardPage() {
                   <tr className="text-left text-gray-500 border-b border-gray-200">
                     <th className="py-2 pr-3">#</th>
                     <th className="py-2 pr-3">Sản phẩm</th>
-                    <th className="py-2 pr-3">Slug</th>
                     <th className="py-2 text-right">Lượt xem</th>
                   </tr>
                 </thead>
                 <tbody>
                   {(productViewSummary?.topProducts || []).length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="py-4 text-center text-gray-500">
+                      <td colSpan={3} className="py-4 text-center text-gray-500">
                         Chưa có dữ liệu.
                       </td>
                     </tr>
@@ -332,13 +331,12 @@ export default function DashboardPage() {
                               onClick={() => openProductModal(p.productSlug)}
                               className="text-left text-emerald-700 hover:text-emerald-800 hover:underline"
                             >
-                              {p.productName || p.productSlug || '—'}
+                              {p.productName || 'Sản phẩm không rõ tên'}
                             </button>
                           ) : (
-                            p.productName || '—'
+                            p.productName || 'Sản phẩm không rõ tên'
                           )}
                         </td>
-                        <td className="py-2 pr-3 text-gray-500">{p.productSlug || '—'}</td>
                         <td className="py-2 text-right font-semibold text-gray-900">{p.views}</td>
                       </tr>
                     ))

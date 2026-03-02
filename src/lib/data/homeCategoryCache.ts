@@ -158,6 +158,7 @@ export async function rebuildHomeCategoryCache() {
       .filter(Boolean)
       .map((g: any) => ({
         slug: g?.category?.slug,
+        categoryName: g?.category?.name,
         products: (g?.products || []).map((p: any) => ({
           _id: String(p?._id || ''),
           name: p?.name,
@@ -187,20 +188,21 @@ export async function rebuildHomeCategoryCache() {
   const prevByCat = new Map<string, any[]>(
     (prevSnap.productsByCategory || []).map((g: any) => [String(g?.slug || ''), g?.products || []])
   );
-  const productsAddedByCategory: Array<{ slug: string; products: any[] }> = [];
-  const productsRemovedByCategory: Array<{ slug: string; products: any[] }> = [];
+  const productsAddedByCategory: Array<{ slug: string; categoryName?: string; products: any[] }> = [];
+  const productsRemovedByCategory: Array<{ slug: string; categoryName?: string; products: any[] }> = [];
 
   (snapshot.productsByCategory || []).forEach((g: any) => {
     const slug = String(g?.slug || '');
     if (!slug) return;
+    const categoryName = g?.categoryName || categoryMap.get(slug)?.name || slug;
     const prevItems = prevByCat.get(slug) || [];
     const prevIds = new Set(prevItems.map((p: any) => String(p?._id || '')));
     const nextItems = g?.products || [];
     const nextIds = new Set(nextItems.map((p: any) => String(p?._id || '')));
     const added = nextItems.filter((p: any) => !prevIds.has(String(p?._id || '')));
     const removed = prevItems.filter((p: any) => !nextIds.has(String(p?._id || '')));
-    if (added.length) productsAddedByCategory.push({ slug, products: added });
-    if (removed.length) productsRemovedByCategory.push({ slug, products: removed });
+    if (added.length) productsAddedByCategory.push({ slug, categoryName, products: added });
+    if (removed.length) productsRemovedByCategory.push({ slug, categoryName, products: removed });
   });
 
   await HomeRebuildLog.updateOne(

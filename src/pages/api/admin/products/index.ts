@@ -62,7 +62,7 @@ async function getFilterOptions() {
 
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse<ListResponse | ErrorResponse>
+  res: NextApiResponse<any | ErrorResponse>
 ) {
   if (!(await isAdminFromSession(req, res))) return res.status(401).json({ message: 'Unauthorized' });
 

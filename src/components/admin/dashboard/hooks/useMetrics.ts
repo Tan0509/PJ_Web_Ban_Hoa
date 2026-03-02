@@ -205,7 +205,10 @@ export function useProductViewSummary(range: { from: string; to: string; limit?:
           topProducts: Array.isArray(d.topProducts)
             ? d.topProducts.map((p: any) => ({
                 productSlug: String(p.productSlug || ''),
-                productName: String(p.productName || p.productSlug || ''),
+                productName:
+                  String(p.productName || '').trim() && String(p.productName || '').trim() !== String(p.productSlug || '').trim()
+                    ? String(p.productName || '').trim()
+                    : 'Sản phẩm không rõ tên',
                 views: Number(p.views || 0),
               }))
             : [],
