@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState, useRef } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { usePathname } from 'next/navigation';
 
 type Category = {
@@ -24,9 +24,8 @@ const MAX_VISIBLE = 7;
 export default function CategoryMenu({ variant = 'desktop', categories: categoriesProp }: Props) {
   const pathname = usePathname();
   const [categories, setCategories] = useState<Category[]>(categoriesProp || []);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
   const [hoverMenu, setHoverMenu] = useState<string | null>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [hoverMore, setHoverMore] = useState(false);
   const normalize = (list: Category[]) =>
     list
       .filter((c) => c?.active !== false)
@@ -94,17 +93,6 @@ export default function CategoryMenu({ variant = 'desktop', categories: categori
   const visibleItems = useMemo(() => items.slice(0, MAX_VISIBLE), [items]);
   const moreItems = useMemo(() => items.slice(MAX_VISIBLE), [items]);
 
-  useEffect(() => {
-    if (!dropdownOpen) return;
-    const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setDropdownOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [dropdownOpen]);
-
   if (variant === 'mobile') {
     return (
       <div className="flex flex-col py-1">
@@ -161,7 +149,7 @@ export default function CategoryMenu({ variant = 'desktop', categories: categori
           </Link>
           {item.children?.length ? (
             <div
-              className={`absolute left-0 top-full mt-1 min-w-[200px] rounded-md bg-gray-50 py-2 shadow-lg ring-1 ring-black/5 z-50 ${
+              className={`absolute left-0 top-full min-w-[200px] rounded-md bg-gray-50 py-2 shadow-lg ring-1 ring-black/5 z-50 ${
                 hoverMenu === item.href ? 'block' : 'hidden'
               }`}
             >
@@ -181,21 +169,22 @@ export default function CategoryMenu({ variant = 'desktop', categories: categori
         </div>
       ))}
       {moreItems.length > 0 && (
-        <div className="relative" ref={dropdownRef}>
-          <button
-            type="button"
-            onClick={() => setDropdownOpen((v) => !v)}
-            className={`whitespace-nowrap hover:text-[#f6c142] ${dropdownOpen ? 'text-[#f6c142]' : ''}`}
+        <div
+          className="relative"
+          onMouseEnter={() => setHoverMore(true)}
+          onMouseLeave={() => setHoverMore(false)}
+        >
+          <span
+            className={`whitespace-nowrap cursor-pointer hover:text-[#f6c142] ${hoverMore ? 'text-[#f6c142]' : ''}`}
           >
             XEM THÊM
-          </button>
-          {dropdownOpen && (
-            <div className="absolute left-0 top-full mt-1 min-w-[180px] rounded-md bg-gray-50 py-2 shadow-lg ring-1 ring-black/5 z-50">
+          </span>
+          {hoverMore && (
+            <div className="absolute left-0 top-full min-w-[180px] rounded-md bg-gray-50 py-2 shadow-lg ring-1 ring-black/5 z-50">
               {moreItems.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
-                  onClick={() => setDropdownOpen(false)}
                   className={`block px-4 py-2 text-sm text-gray-800 hover:bg-gray-100 hover:text-[#0f5c5c] ${pathname === item.href ? 'bg-gray-50 text-[#0f5c5c] font-semibold' : ''}`}
                 >
                   {item.label}
