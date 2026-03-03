@@ -2,8 +2,7 @@
 # https://docs.netlify.com/frameworks/next-js/
 
 [build]
-  command = "npm run build"
-  publish = ".next"
+  command = "npm ci && npm run build"
 
 [build.environment]
   NODE_VERSION = "20"
