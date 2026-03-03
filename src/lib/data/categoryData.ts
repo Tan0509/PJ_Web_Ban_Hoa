@@ -15,15 +15,11 @@ export type SearchParams = {
 
 const PAGE_SIZE = 24;
 
-function buildFilters(slug: string, searchParams: SearchParams, categoryId: string) {
+function buildFilters(slug: string, searchParams: SearchParams) {
   const orFilters: any[] = [
     { categorySlug: slug },
     { categorySlugs: slug },
   ];
-  if (categoryId) {
-    orFilters.push({ categoryId });
-    orFilters.push({ categoryIds: categoryId });
-  }
 
   const filters: any = {
     active: true,
@@ -74,8 +70,7 @@ export async function getCategoryPageData(slug: string, searchParams: SearchPara
   const category = await Category.findOne({ slug, active: { $ne: false } }).lean();
   if (!category || !(category as any)._id) return null;
 
-  const categoryId = String((category as any)._id);
-  const filters = buildFilters(slug, normalized, categoryId);
+  const filters = buildFilters(slug, normalized);
   const sort = getSort(normalized.sort);
 
   const [products, total, productFiltersDoc] = await Promise.all([
